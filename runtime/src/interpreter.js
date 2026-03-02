@@ -110,8 +110,12 @@ export class MirxInterpreter {
     for (const stmt of statements) {
       if (!stmt) continue;
       if (stmt.type === 'CommandStatement') this.runCommand(stmt.name, stmt.args, payload, args);
-      if (stmt.type === 'IfStatement' && evalCondition(stmt.condition, this.ctx, args)) {
-        this.runStatements(stmt.body, payload, args);
+      if (stmt.type === 'IfStatement') {
+        if (evalCondition(stmt.condition, this.ctx, args)) {
+          this.runStatements(stmt.body, payload, args);
+        } else if (stmt.alternate) {
+          this.runAlternate(stmt.alternate, payload, args);
+        }
       }
       if (stmt.type === 'WhileStatement') {
         let guard = 0;
@@ -121,6 +125,18 @@ export class MirxInterpreter {
         }
       }
       if (stmt.type === 'SequenceStatement') this.runStatements(stmt.body, payload, args);
+    }
+  }
+
+  runAlternate(alternate, payload, args) {
+    if (alternate.type === 'ElseStatement') {
+      this.runStatements(alternate.body, payload, args);
+    } else if (alternate.type === 'ElseifStatement') {
+      if (evalCondition(alternate.condition, this.ctx, args)) {
+        this.runStatements(alternate.body, payload, args);
+      } else if (alternate.alternate) {
+        this.runAlternate(alternate.alternate, payload, args);
+      }
     }
   }
 

@@ -177,6 +177,39 @@ function emitCommand(node, ctx) {
   return `${runtimeName}(${args.map((a) => lowerToken(a, ctx)).join(', ')});`;
 }
 
+function emitIfStatement(node, ctx, indent) {
+  const body = emitStatements(node.body, ctx, `${indent}  `);
+  let code = `${indent}if (${lowerExpression(node.condition, ctx)}) {\n${body}\n${indent}}`;
+
+  if (node.alternate) {
+    if (node.alternate.type === 'ElseStatement') {
+      const elseBody = emitStatements(node.alternate.body, ctx, `${indent}  `);
+      code += ` else {\n${elseBody}\n${indent}}`;
+    } else if (node.alternate.type === 'ElseifStatement') {
+      const elseifNode = node.alternate;
+      const elseifBody = emitStatements(elseifNode.body, ctx, `${indent}  `);
+      code += ` else if (${lowerExpression(elseifNode.condition, ctx)}) {\n${elseifBody}\n${indent}}`;
+
+      let current = elseifNode.alternate;
+      while (current) {
+        if (current.type === 'ElseStatement') {
+          const elseBody = emitStatements(current.body, ctx, `${indent}  `);
+          code += ` else {\n${elseBody}\n${indent}}`;
+          break;
+        } else if (current.type === 'ElseifStatement') {
+          const body = emitStatements(current.body, ctx, `${indent}  `);
+          code += ` else if (${lowerExpression(current.condition, ctx)}) {\n${body}\n${indent}}`;
+          current = current.alternate;
+        } else {
+          break;
+        }
+      }
+    }
+  }
+
+  return code;
+}
+
 function emitStatements(statements, ctx, indent = '  ') {
   return statements
     .map((node) => {
@@ -191,8 +224,7 @@ function emitStatements(statements, ctx, indent = '  ') {
       }
 
       if (node.type === 'IfStatement') {
-        const body = emitStatements(node.body, ctx, `${indent}  `);
-        return `${indent}if (${lowerExpression(node.condition, ctx)}) {\n${body}\n${indent}}`;
+        return emitIfStatement(node, ctx, indent);
       }
 
       if (node.type === 'WhileStatement') {
@@ -251,6 +283,12 @@ export function generate(program, opts = {}) {
 
     if (node.type === 'CommandStatement' || node.type === 'SequenceStatement') {
       chunks.push(emitStatements([node], ctx, ''));
+      continue;
+    }
+
+    if (node.type === 'IfStatement' || node.type === 'WhileStatement') {
+      chunks.push(emitStatements([node], ctx, ''));
+      continue;
     }
   }
 
