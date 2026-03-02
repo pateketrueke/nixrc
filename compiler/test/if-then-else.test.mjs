@@ -174,6 +174,29 @@ else {
   console.log('  ✓ nested parens in if/elseif condition');
 }
 
+function testWhileWithOpeningBraceSameLine() {
+  const input = `
+alias loop {
+  set %i 1
+  set %n 2
+  while (%i <= %n) {
+    inc %i
+  }
+}
+`;
+
+  const ast = parseMirc(input);
+  const alias = ast.body[0];
+  const loop = alias.body.find((x) => x.type === 'WhileStatement');
+
+  assert.ok(loop, 'Should parse while statement');
+  assert.equal(loop.condition.trim(), '%i <= %n');
+  assert.equal(loop.body.length, 1);
+  assert.equal(loop.body[0].name, 'inc');
+
+  console.log('  ✓ while with opening brace on same line');
+}
+
 function testCodegenIfElse() {
   const input = `
 if ($1 == a) {
@@ -227,6 +250,7 @@ testSingleLineIfWithPipe();
 testMinimalWhitespace();
 testNestedIfElse();
 testNestedParensCondition();
+testWhileWithOpeningBraceSameLine();
 testCodegenIfElse();
 testCodegenIfElseifElse();
 console.log('\nAll if-then-else tests passed!');
