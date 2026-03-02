@@ -5,11 +5,12 @@ function rgbToCss(color) {
 }
 
 class PictureWindow {
-  constructor(name, host, opts = {}, onPointerEvent = null) {
+  constructor(name, host, opts = {}, onPointerEvent = null, manager = null) {
     this.name = name;
     this.host = host;
     this.opts = opts;
     this.onPointerEvent = onPointerEvent;
+    this._manager = manager;
     this.meta = { x: opts.x || 0, y: opts.y || 0, w: opts.w || 320, h: opts.h || 240 };
 
     this.root = document.createElement('section');
@@ -95,6 +96,64 @@ class PictureWindow {
     this.ctx.putImageData(image, 0, 0);
   }
 
+  drawPic(opts = {}) {
+    const src = String(opts.src ?? '').trim();
+    if (!src) return;
+
+    const draw = (image) => {
+      if (!image) return;
+      const iw = Number(image.naturalWidth || image.width || 0);
+      const ih = Number(image.naturalHeight || image.height || 0);
+      if (iw <= 0 || ih <= 0) return;
+
+      const x = Number(opts.x) || 0;
+      const y = Number(opts.y) || 0;
+      const w = Number(opts.w);
+      const h = Number(opts.h);
+      const dw = Number.isFinite(w) && w > 0 ? w : iw;
+      const dh = Number.isFinite(h) && h > 0 ? h : ih;
+      const flags = opts.flags || {};
+      const dx = flags.c ? x - dw / 2 : x;
+      const dy = flags.c ? y - dh / 2 : y;
+
+      if (flags.m) {
+        this.ctx.save();
+        this.ctx.beginPath();
+        this.ctx.rect(dx, dy, dw, dh);
+        this.ctx.clip();
+        for (let tx = dx; tx < dx + dw; tx += iw) {
+          for (let ty = dy; ty < dy + dh; ty += ih) {
+            this.ctx.drawImage(image, tx, ty);
+          }
+        }
+        this.ctx.restore();
+        return;
+      }
+
+      const sx = Number(opts.sx);
+      const sy = Number(opts.sy);
+      const sw = Number(opts.sw);
+      const sh = Number(opts.sh);
+      const hasCrop = [sx, sy, sw, sh].every((n) => Number.isFinite(n));
+      if (hasCrop) {
+        this.ctx.drawImage(image, sx, sy, sw, sh, dx, dy, dw, dh);
+        return;
+      }
+
+      this.ctx.drawImage(image, dx, dy, dw, dh);
+    };
+
+    const cached = this._manager?.imageCache?.get(src);
+    if (cached) {
+      draw(cached);
+      return;
+    }
+
+    this._manager?.loadImage?.(src).then((image) => {
+      draw(image);
+    });
+  }
+
   bindPointerEvents() {
     if (typeof this.onPointerEvent !== 'function') return;
 
@@ -176,6 +235,8 @@ export class WindowManager {
     this.onPointerEvent = onPointerEvent;
     this.pictureWindows = new Map();
     this.textWindows = new Map();
+    this.imageCache = new Map();
+    this.imageLoads = new Map();
     this.active = null;
   }
 
@@ -183,7 +244,7 @@ export class WindowManager {
     const key = normalizeName(name);
     const existing = this.pictureWindows.get(key);
     if (existing) return existing;
-    const w = new PictureWindow(key, this.host, opts, this.onPointerEvent);
+    const w = new PictureWindow(key, this.host, opts, this.onPointerEvent, this);
     this.pictureWindows.set(key, w);
     this.active = key;
     return w;
@@ -215,6 +276,30 @@ export class WindowManager {
     for (const w of this.textWindows.values()) w.root.remove();
     this.pictureWindows.clear();
     this.textWindows.clear();
+  }
+
+  loadImage(src) {
+    const key = String(src ?? '').trim();
+    if (!key) return Promise.resolve(null);
+    if (this.imageCache.has(key)) return Promise.resolve(this.imageCache.get(key));
+    if (this.imageLoads.has(key)) return this.imageLoads.get(key);
+    if (typeof Image !== 'function') return Promise.resolve(null);
+
+    const loading = new Promise((resolve) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        this.imageCache.set(key, img);
+        resolve(img);
+      };
+      img.onerror = () => resolve(null);
+      img.src = key;
+    }).finally(() => {
+      this.imageLoads.delete(key);
+    });
+
+    this.imageLoads.set(key, loading);
+    return loading;
   }
 }
 
