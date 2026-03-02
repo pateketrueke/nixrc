@@ -270,10 +270,22 @@ function parseStatement(raw, lines, index) {
     const restOfLine = whileLead.rest;
     const trimmed = restOfLine.trim();
 
+    if (trimmed === '{') {
+      const block = parseBlock(lines, index + 1);
+      return {
+        node: {
+          type: 'WhileStatement',
+          condition: whileLead.condition,
+          body: block.body,
+        },
+        nextIndex: block.nextIndex,
+      };
+    }
+
     if (trimmed.startsWith('{')) {
-      const closeIdx = findMatchingBrace(restOfLine, 0);
+      const closeIdx = findMatchingBrace(trimmed, 0);
       if (closeIdx !== -1) {
-        const bodyRaw = restOfLine.slice(1, closeIdx).trim();
+        const bodyRaw = trimmed.slice(1, closeIdx).trim();
         const body = splitByPipe(bodyRaw).map(parseCommand).filter(Boolean);
         return {
           node: {
