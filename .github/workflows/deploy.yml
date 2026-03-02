@@ -20,13 +20,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Assemble deploy directory
-        run: |
-          mkdir -p dist/play dist/runtime dist/compiler
-          cp -r site/. dist/
-          cp -r playground/. dist/play/
-          cp -r runtime/. dist/runtime/
-          cp -r compiler/. dist/compiler/
-          echo "nixrc.dev" > dist/CNAME
+        run: make dist
 
       - name: Deploy to gh-pages
         uses: peaceiris/actions-gh-pages@v4

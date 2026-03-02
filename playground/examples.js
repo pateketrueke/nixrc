@@ -243,6 +243,156 @@ on *:MDOWN:@fill {
     set %fillcol 0
   }
 }`,
+  "3D Starfield": `alias start {
+  window -pz @star 0 0 800 520
+  set %stars 160
+  set %t 0
+  set %speed 1
+  set %warp 0
+  .timerstar 0 30 star-tick
+}
+
+alias star-tick {
+  drawrect -fr @star $rgb(2,4,12) 0 0 800 520
+  var %i = 1
+  while (%i <= %stars) {
+    var %seed = $calc(%i * 37)
+    var %angle = $calc(%seed * 13 + %t * 0.7)
+    var %radius = $calc(30 + (%seed % 390))
+    var %sx = $calc($sin(%angle) * %radius)
+    var %sy = $calc($cos(%angle * 1.3) * (%radius * 0.7))
+    var %z = $calc(1 + ((%t * %speed * 1.4 + %seed) % 96))
+    var %inv = $calc(100 / %z)
+    var %px = $calc(400 + %sx * %inv)
+    var %py = $calc(260 + %sy * %inv)
+    if (%px >= 0 && %px <= 799 && %py >= 0 && %py <= 519) {
+      var %size = $calc(1 + $int((100 - %z) / 18))
+      var %c = $calc(130 + $int((100 - %z) * 1.2))
+      if (%c > 255) { set %c 255 }
+      var %b = $calc(%c - 24)
+      if (%b < 0) { set %b 0 }
+      drawdot -r @star $rgb(%c,%c,%b) %size %px %py
+    }
+    inc %i
+  }
+  if (%warp == 1) {
+    drawtext @star $rgb(255,180,120) JetBrainsMono 14 20 32 WARP: ON
+  }
+  else {
+    drawtext @star $rgb(170,190,255) JetBrainsMono 14 20 32 WARP: OFF
+  }
+  drawtext @star $rgb(170,190,255) JetBrainsMono 12 20 52 Click to toggle warp speed
+  set %t $calc(%t + 1)
+}
+
+on *:MDOWN:@star {
+  if (%warp == 0) {
+    set %warp 1
+    set %speed 6
+  }
+  else {
+    set %warp 0
+    set %speed 1
+  }
+}`,
+  "Fireworks": `alias start {
+  window -pz @fw 0 0 800 520
+  drawrect -fr @fw $rgb(5,7,14) 0 0 800 520
+  set %fwcx 400
+  set %fwcy 260
+  set %fwage 0
+  set %fwr 255
+  set %fwg 160
+  set %fwb 120
+  .timerfw 0 33 fw-tick
+}
+
+alias fw-launch {
+  set %fwcx $mouse.x
+  set %fwcy $mouse.y
+  set %fwage 1
+  set %fwr $rand(140,255)
+  set %fwg $rand(80,255)
+  set %fwb $rand(80,255)
+}
+
+alias fw-tick {
+  drawrect -fr @fw $rgb(5,7,14) 0 0 800 520
+  drawtext @fw $rgb(190,210,255) JetBrainsMono 12 18 30 Click anywhere to launch
+  if (%fwage > 0) {
+    var %i = 1
+    while (%i <= 56) {
+      var %ang = $calc(%i * 7 + %fwage * 4)
+      var %orbit = $calc(%fwage * 2 + (%i % 6) * 2)
+      var %px = $calc(%fwcx + $sin(%ang) * %orbit * 1.7)
+      var %py = $calc(%fwcy - $cos(%ang) * %orbit * 1.6 + %fwage * %fwage * 0.11)
+      var %fade = $calc(255 - %fwage * 4)
+      if (%fade < 35) { set %fade 35 }
+      var %r = $int($calc(%fwr * %fade / 255))
+      var %g = $int($calc(%fwg * %fade / 255))
+      var %b = $int($calc(%fwb * %fade / 255))
+      var %size = $calc(1 + (%i % 3))
+      drawdot -r @fw $rgb(%r,%g,%b) %size %px %py
+      inc %i
+    }
+    set %fwage $calc(%fwage + 1)
+    if (%fwage > 52) {
+      set %fwage 0
+    }
+  }
+}
+
+on *:MDOWN:@fw {
+  fw-launch
+}`,
+  "Matrix Rain": `alias start {
+  window -pz @mx 0 0 800 560
+  drawrect -fr @mx $rgb(0,0,0) 0 0 800 560
+  set %cols 50
+  set %rows 34
+  set %cw 16
+  set %ch 16
+  set %mxspeed 1
+  set %mxtick 0
+  .timermx 0 55 matrix-tick
+}
+
+alias matrix-tick {
+  drawrect -fr @mx $rgb(0,0,0) 0 0 800 560
+  var %i = 1
+  while (%i <= %cols) {
+    var %phase = $calc(%i * 11)
+    var %spd = $calc(1 + (%i % 3))
+    var %head = $calc(($int(%mxtick * %spd * %mxspeed) + %phase) % (%rows + 24) - 24)
+    var %len = $calc(8 + (%i % 10))
+    var %j = 0
+    while (%j <= %len) {
+      var %ry = $calc(%head - %j)
+      if (%ry >= 0 && %ry < %rows) {
+        var %x = $calc((%i - 1) * %cw)
+        var %y = $calc(%ry * %ch + 14)
+        var %g = $calc(220 - %j * 14)
+        if (%j == 0) { set %g 255 }
+        if (%g < 45) { set %g 45 }
+        var %r = $int($calc(%g / 7))
+        var %b = $int($calc(%g / 6))
+        var %chr = $chr($calc(33 + ((%mxtick + %phase + %j * 3) % 90)))
+        drawtext @mx $rgb(%r,%g,%b) Courier 14 %x %y %chr
+      }
+      inc %j
+    }
+    inc %i
+  }
+  drawtext @mx $rgb(120,255,140) JetBrainsMono 12 18 28 Matrix Rain
+  drawtext @mx $rgb(120,255,140) JetBrainsMono 11 18 46 Click to cycle speed
+  set %mxtick $calc(%mxtick + 1)
+}
+
+on *:MDOWN:@mx {
+  if (%mxspeed == 1) { set %mxspeed 2 }
+  elseif (%mxspeed == 2) { set %mxspeed 4 }
+  else { set %mxspeed 1 }
+}`,
   "Widget Toolkit": `alias start {
   hmake ui
   window -pz @ui 0 0 440 320
