@@ -409,7 +409,10 @@ function parseStatement(raw, lines, index) {
 }
 
 export function parseMirc(source) {
-  const lines = source.replace(/\r\n/g, '\n').split('\n');
+  const lines = source
+    .replace(/\r\n/g, '\n')
+    .replace(/\}\s*(else(?:if)?)\b/gi, '}\n$1')
+    .split('\n');
   const body = [];
   let i = 0;
 
