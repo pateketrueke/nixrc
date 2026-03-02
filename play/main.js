@@ -1,8 +1,10 @@
 import { createRuntime } from '../runtime/src/index.js';
 import { EXAMPLES } from './examples.js';
+import { highlight } from './highlight.js';
 import { updateHashWithCode, readCodeFromHash } from './url-codec.js';
 
 const editor = document.getElementById('editor');
+const hl = document.getElementById('hl');
 const examples = document.getElementById('examples');
 const runBtn = document.getElementById('run');
 const shareBtn = document.getElementById('share');
@@ -40,11 +42,16 @@ function updateHash() {
   updateHashWithCode(editor.value);
 }
 
+function syncHighlight() {
+  hl.innerHTML = highlight(editor.value);
+}
+
 function loadFromHash() {
   try {
     const maybeCode = readCodeFromHash();
     if (maybeCode == null) return false;
     editor.value = maybeCode;
+    syncHighlight();
     return true;
   } catch {
     return false;
@@ -60,6 +67,7 @@ for (const name of Object.keys(EXAMPLES)) {
 
 examples.addEventListener('change', () => {
   editor.value = EXAMPLES[examples.value];
+  syncHighlight();
   updateHash();
   runScript();
 });
@@ -82,16 +90,23 @@ clearConsole.addEventListener('click', () => {
 
 let debounce;
 editor.addEventListener('input', () => {
+  syncHighlight();
   updateHash();
   if (!autorun.checked) return;
   clearTimeout(debounce);
   debounce = setTimeout(runScript, 500);
 });
 
+editor.addEventListener('scroll', () => {
+  hl.scrollTop = editor.scrollTop;
+  hl.scrollLeft = editor.scrollLeft;
+});
+
 if (!loadFromHash()) {
   const first = Object.keys(EXAMPLES)[0];
   examples.value = first;
   editor.value = EXAMPLES[first];
+  syncHighlight();
   updateHash();
 }
 

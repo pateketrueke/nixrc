@@ -5,6 +5,11 @@
   --text: #dfe7f5;
   --muted: #99a6bf;
   --accent: #4da6ff;
+  --hl-comment: #6272a4;
+  --hl-ident: #8be9fd;
+  --hl-var: #f1fa8c;
+  --hl-kw: #ff79c6;
+  --hl-num: #bd93f9;
 }
 
 * { box-sizing: border-box; }
@@ -56,17 +61,50 @@ main {
   border-right: 1px solid var(--line);
   background: #101522;
 }
+.editor-wrap {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  height: 100%;
+}
+#hl {
+  position: absolute;
+  top: 0;
+  left: 0;
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  padding: 0.8rem;
+  pointer-events: none;
+  font: inherit;
+  line-height: 1.4;
+  white-space: pre-wrap;
+  tab-size: 2;
+  color: var(--text);
+}
 #editor {
+  position: relative;
+  z-index: 1;
   width: 100%;
   height: 100%;
   border: 0;
   background: transparent;
-  color: var(--text);
+  color: transparent;
+  caret-color: var(--text);
+  -webkit-text-fill-color: transparent;
   padding: 0.8rem;
   resize: none;
   outline: none;
   font: inherit;
+  line-height: 1.4;
+  tab-size: 2;
 }
+.hl-comment { color: var(--hl-comment); font-style: italic; }
+.hl-ident { color: var(--hl-ident); }
+.hl-var { color: var(--hl-var); }
+.hl-kw { color: var(--hl-kw); font-weight: 600; }
+.hl-num { color: var(--hl-num); }
 .runtime-host {
   height: 100%;
   overflow: auto;
