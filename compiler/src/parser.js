@@ -143,6 +143,32 @@ function findMatchingBrace(str, startIdx) {
   return -1;
 }
 
+function findMatchingParen(str, startIdx) {
+  let depth = 0;
+  for (let i = startIdx; i < str.length; i += 1) {
+    if (str[i] === '(') depth += 1;
+    else if (str[i] === ')') {
+      depth -= 1;
+      if (depth === 0) return i;
+    }
+  }
+  return -1;
+}
+
+function parseLeadingCondition(raw, keyword) {
+  const k = String(keyword || '').toLowerCase();
+  const source = raw.trimStart();
+  if (!source.toLowerCase().startsWith(k)) return null;
+  const afterKeyword = source.slice(k.length).trimStart();
+  if (!afterKeyword.startsWith('(')) return null;
+  const closeIdx = findMatchingParen(afterKeyword, 0);
+  if (closeIdx === -1) return null;
+  return {
+    condition: afterKeyword.slice(1, closeIdx),
+    rest: afterKeyword.slice(closeIdx + 1),
+  };
+}
+
 function parseInlineIfElse(restOfLine, condition) {
   const trimmed = restOfLine.trim();
   if (!trimmed) return null;
@@ -176,15 +202,15 @@ function parseInlineIfElse(restOfLine, condition) {
         };
       }
     }
-  } else if (afterBody.startsWith('elseif ')) {
-    const elseifMatch = afterBody.match(/^elseif\s*\((.+?)\)\s*/);
-    if (elseifMatch) {
-      const elseifRest = afterBody.slice(elseifMatch[0].length);
-      const elseifResult = parseInlineIfElse(elseifRest, elseifMatch[1]);
+  } else if (afterBody.startsWith('elseif')) {
+    const elseifLead = parseLeadingCondition(afterBody, 'elseif');
+    if (elseifLead) {
+      const elseifRest = elseifLead.rest;
+      const elseifResult = parseInlineIfElse(elseifRest, elseifLead.condition);
       if (elseifResult) {
         node.alternate = {
           type: 'ElseifStatement',
-          condition: elseifResult.node.condition,
+          condition: elseifLead.condition,
           body: elseifResult.node.body,
           alternate: elseifResult.node.alternate,
         };
@@ -200,10 +226,10 @@ function parseStatement(raw, lines, index) {
     return { node: null, nextIndex: index + 1 };
   }
 
-  const ifMatch = raw.match(/^if\s*\((.+?)\)\s*/i);
-  if (ifMatch) {
-    const condition = ifMatch[1];
-    const afterCond = raw.slice(ifMatch[0].length);
+  const ifLead = parseLeadingCondition(raw, 'if');
+  if (ifLead) {
+    const condition = ifLead.condition;
+    const afterCond = ifLead.rest;
     const afterCondTrimmed = afterCond.trim();
 
     if (afterCondTrimmed.startsWith('{')) {
@@ -239,10 +265,9 @@ function parseStatement(raw, lines, index) {
     }
   }
 
-  const whileMatch = raw.match(/^while\s*\((.+)\)\s*\{/i);
-  if (whileMatch) {
-    const fullMatch = whileMatch[0];
-    const restOfLine = raw.slice(fullMatch.length);
+  const whileLead = parseLeadingCondition(raw, 'while');
+  if (whileLead) {
+    const restOfLine = whileLead.rest;
     const trimmed = restOfLine.trim();
 
     if (trimmed.startsWith('{')) {
@@ -253,7 +278,7 @@ function parseStatement(raw, lines, index) {
         return {
           node: {
             type: 'WhileStatement',
-            condition: whileMatch[1],
+            condition: whileLead.condition,
             body,
           },
           nextIndex: index + 1,
@@ -266,7 +291,7 @@ function parseStatement(raw, lines, index) {
       return {
         node: {
           type: 'WhileStatement',
-          condition: whileMatch[1],
+          condition: whileLead.condition,
           body: block.body,
         },
         nextIndex: block.nextIndex,
