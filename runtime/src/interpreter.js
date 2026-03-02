@@ -10,6 +10,19 @@ function toNumber(v) {
   return Number.isFinite(n) ? n : 0;
 }
 
+function tokenDelimiter(v) {
+  const raw = String(v ?? '');
+  const n = Number(raw);
+  if (raw !== '' && Number.isFinite(n)) return String.fromCharCode(n);
+  return raw[0] || ' ';
+}
+
+function tokenizeByDelimiter(input, delimiter) {
+  return String(input ?? '')
+    .split(delimiter)
+    .filter((x) => x.length > 0);
+}
+
 function parseRegexArg(patternRaw) {
   const raw = String(patternRaw ?? '').trim();
   const slash = raw.match(/^\/(.+)\/([gimsuy]*)$/);
@@ -134,6 +147,17 @@ function evalIdentifier(token, ctx, args) {
   if (name === 'str') return String(rawArgs[0] ?? '').repeat(toNumber(rawArgs[1] ?? 1));
   if (name === 'chr') return String.fromCharCode(toNumber(rawArgs[0]));
   if (name === 'asc') return String(rawArgs[0] ?? '').charCodeAt(0) || 0;
+  if (name === 'numtok') {
+    const delim = tokenDelimiter(rawArgs[1]);
+    return tokenizeByDelimiter(rawArgs[0], delim).length;
+  }
+  if (name === 'gettok') {
+    const idx = Math.floor(toNumber(rawArgs[1]));
+    if (idx <= 0) return '';
+    const delim = tokenDelimiter(rawArgs[2]);
+    const tokens = tokenizeByDelimiter(rawArgs[0], delim);
+    return tokens[idx - 1] ?? '';
+  }
   if (name === 'rgb') return `rgb(${rawArgs.map((x) => toNumber(x)).join(',')})`;
   if (name === 'window') return ctx.windowManager.info(rawArgs[0]);
   if (name === 'mouse') return ctx.mouse?.[rawArgs[0]] ?? 0;
@@ -400,6 +424,61 @@ export class NixrcInterpreter {
     if (n === 'drawfill') {
       const win = this.ctx.windowManager.get(resolved[1]);
       win?.drawFill(resolved[2], resolved[3], resolved[4], resolved[5]);
+      return;
+    }
+
+    if (n === 'loadpic') {
+      const src = String(resolved[0] ?? '').trim();
+      if (!src) return;
+      this.ctx.windowManager.loadImage?.(src);
+      return;
+    }
+
+    if (n === 'drawpic') {
+      let idx = 0;
+      const flags = { c: false, m: false, s: false };
+      const flagToken = String(resolved[idx] ?? '');
+      if (flagToken.startsWith('-')) {
+        flags.c = flagToken.includes('c');
+        flags.m = flagToken.includes('m');
+        flags.s = flagToken.includes('s');
+        idx += 1;
+      }
+
+      const win = this.ctx.windowManager.get(resolved[idx++]);
+      if (!win || typeof win.drawPic !== 'function') return;
+      const x = toNumber(resolved[idx++]);
+      const y = toNumber(resolved[idx++]);
+      const rest = resolved.slice(idx);
+      if (rest.length === 0) return;
+
+      let w;
+      let h;
+      let sx;
+      let sy;
+      let sw;
+      let sh;
+      let src;
+
+      if (rest.length >= 7) {
+        w = toNumber(rest[0]);
+        h = toNumber(rest[1]);
+        sx = toNumber(rest[2]);
+        sy = toNumber(rest[3]);
+        sw = toNumber(rest[4]);
+        sh = toNumber(rest[5]);
+        src = String(rest.slice(6).join(' '));
+      } else if (rest.length >= 3) {
+        w = toNumber(rest[0]);
+        h = toNumber(rest[1]);
+        src = String(rest.slice(2).join(' '));
+      } else {
+        src = String(rest.join(' '));
+      }
+
+      src = stripQuotes(src).trim();
+      if (!src) return;
+      win.drawPic({ x, y, w, h, sx, sy, sw, sh, src, flags });
       return;
     }
 
