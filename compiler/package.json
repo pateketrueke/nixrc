@@ -1,0 +1,12 @@
+{
+  "name": "@mirx/compiler",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "mirx": "./cli.js"
+  },
+  "scripts": {
+    "test": "node ./test/transpiler.test.mjs"
+  }
+}

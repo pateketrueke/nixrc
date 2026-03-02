@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>nixrc | mIRC scripting for the modern web</title>
+    <meta
+      name="description"
+      content="nixrc revives mIRC scripting for browser and server runtimes with a live playground, transpiler, and picture windows."
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="bg-grid" aria-hidden="true"></div>
+    <header class="hero reveal">
+      <div class="hero-copy">
+        <p class="kicker">nixrc</p>
+        <h1>mIRC scripting. For the modern web.</h1>
+        <p class="lede">
+          Run classic mIRC scripts in browsers and server runtimes, with a working transpiler MVP and modern tooling.
+        </p>
+        <div class="cta-row">
+          <a class="btn btn-primary" href="https://play.nixrc.dev" target="_blank" rel="noreferrer">Try the Playground</a>
+          <a class="btn btn-ghost" href="https://github.com/" target="_blank" rel="noreferrer">GitHub</a>
+        </div>
+      </div>
+      <div class="hero-terminal" aria-label="Animated mIRC script preview">
+        <div class="terminal-bar">
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
+        <pre><code id="typewriter"></code></pre>
+      </div>
+    </header>
+
+    <main>
+      <section class="pitch reveal">
+        <p>
+          mIRC scripting was ahead of its time. Event-driven, socket-native, with picture windows and a tiny feedback
+          loop that invited experimentation.
+        </p>
+        <p>
+          I built nixrc to carry that model forward: browser runtime, server runtime, and a transpiler that turns
+          scripts into importable TypeScript modules.
+        </p>
+      </section>
+
+      <section class="pillars reveal">
+        <article class="card">
+          <h2>Browser Runtime</h2>
+          <p>Picture windows on Canvas and event handlers that feel native to mIRC scripting.</p>
+          <pre><code class="lang-mirc">on *:paint:@clock:{
+  drawline -r @clock $rgb(77,166,255) 2 50 50 80 20
+}</code></pre>
+        </article>
+        <article class="card">
+          <h2>Transpiler</h2>
+          <p>Compile `.mrc` scripts into typed modules with source maps, watch mode, and optional `.d.ts` output.</p>
+          <pre><code class="lang-sh">nixrc compile regx.mrc --out dist --emit-dts --watch
+# dist/regx.ts (+ .map + .d.ts)</code></pre>
+        </article>
+        <article class="card">
+          <h2>Server-Side</h2>
+          <p>Run bots and IRC automations on Bun, Node.js, or Deno without rewriting core script logic.</p>
+          <pre><code class="lang-ts">import { Runtime } from "nixrc/server";
+const bot = new Runtime();
+bot.load("greet.mrc");</code></pre>
+        </article>
+        <article class="card">
+          <h2>Playground</h2>
+          <p>A live editor for mIRC scripts with instant execution and shareable links.</p>
+          <pre><code class="lang-url">https://play.nixrc.dev?script=clock.mrc</code></pre>
+        </article>
+      </section>
+
+      <section class="gallery reveal" aria-label="Example scripts">
+        <h2>Example Scripts</h2>
+        <div class="gallery-row">
+          <article class="snippet">
+            <h3>clock.mrc</h3>
+            <p>Analog clock drawing and timer loop.</p>
+            <a href="https://play.nixrc.dev?script=clock.mrc" target="_blank" rel="noreferrer">Run in playground</a>
+          </article>
+          <article class="snippet">
+            <h3>ball.mrc</h3>
+            <p>Animation loop and collision bounce.</p>
+            <a href="https://play.nixrc.dev?script=ball.mrc" target="_blank" rel="noreferrer">Run in playground</a>
+          </article>
+          <article class="snippet">
+            <h3>regx.mrc</h3>
+            <p>Regex extraction and text formatting.</p>
+            <a href="https://play.nixrc.dev?script=regx.mrc" target="_blank" rel="noreferrer">Run in playground</a>
+          </article>
+          <article class="snippet">
+            <h3>amip.mrc</h3>
+            <p>Timer-based now-playing metadata updates.</p>
+            <a href="https://play.nixrc.dev?script=amip.mrc" target="_blank" rel="noreferrer">Run in playground</a>
+          </article>
+          <article class="snippet">
+            <h3>fserve.mrc</h3>
+            <p>File-serving style triggers and socket flow.</p>
+            <a href="https://play.nixrc.dev?script=fserve.mrc" target="_blank" rel="noreferrer">Run in playground</a>
+          </article>
+        </div>
+      </section>
+
+      <section class="philosophy reveal">
+        <h2>Why nixrc?</h2>
+        <p>
+          mIRC scripting taught me that good tooling is about momentum. You write a few lines, trigger an event, and
+          immediately see behavior. That creative loop still matters.
+        </p>
+        <p>
+          nixrc keeps that spirit but makes it portable: scripts that run in the browser, in server runtimes, and in
+          modern build pipelines without losing the original model.
+        </p>
+      </section>
+
+      <section class="roadmap reveal">
+        <h2>Current Progress</h2>
+        <ul>
+          <li><span class="done">Done</span> Architecture and subsystem planning</li>
+          <li><span class="done">Done</span> nixrc.dev landing page / pitch site</li>
+          <li><span class="done">Done</span> `.mrc` to TypeScript transpiler MVP (compile, watch, source maps, d.ts)</li>
+          <li><span class="done">Done</span> Core runtime MVP: tokenizer/parser integration + interpreter</li>
+          <li><span class="done">Done</span> Picture windows + window/text/dialog event host MVP</li>
+          <li><span class="done">Done</span> Live playground MVP with URL sharing and examples</li>
+          <li><span class="done">Done</span> Browser UI framework MVP (`&lt;mirx-dialog&gt;`, `&lt;mirx-canvas&gt;`, JS API)</li>
+        </ul>
+      </section>
+
+      <section class="notify reveal">
+        <h2>Stay in the Loop</h2>
+        <p>nixrc is live. Get notified of major updates, stable releases, and breaking changes. Low volume, no noise.</p>
+        <form action="https://api.web3forms.com/submit" method="POST">
+          <input type="hidden" name="access_key" value="9843b63c-54f1-415d-931e-87fb16a72eed" />
+          <input type="hidden" name="subject" value="nixrc.dev — updates signup" />
+          <input type="email" name="email" placeholder="your@email.com" required />
+          <div class="notify-actions">
+            <button type="submit">Stay in the loop →</button>
+            <a class="notify-star" href="https://github.com/" target="_blank" rel="noreferrer">⭐ Star on GitHub</a>
+          </div>
+        </form>
+      </section>
+    </main>
+
+    <footer class="reveal">
+      <p>nixrc — mIRC scripting for the modern web</p>
+      <nav>
+        <a href="https://github.com/" target="_blank" rel="noreferrer">GitHub</a>
+        <a href="https://play.nixrc.dev" target="_blank" rel="noreferrer">play.nixrc.dev</a>
+        <a href="https://opensource.org/license/mit" target="_blank" rel="noreferrer">MIT License</a>
+      </nav>
+      <p>Made by alvaro · <span id="year"></span></p>
+    </footer>
+    <script src="./main.js"></script>
+  </body>
+</html>

@@ -1,0 +1,95 @@
+:root {
+  --bg: #0c0f17;
+  --panel: #151b2b;
+  --line: #2a3550;
+  --text: #dfe7f5;
+  --muted: #99a6bf;
+  --accent: #4da6ff;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  background: var(--bg);
+  color: var(--text);
+  display: grid;
+  grid-template-rows: auto 1fr 180px;
+  min-height: 100vh;
+}
+header {
+  padding: 0.6rem 0.8rem;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+.actions { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
+button, select {
+  border: 1px solid #36507a;
+  background: #19233a;
+  color: var(--text);
+  border-radius: 8px;
+  padding: 0.35rem 0.6rem;
+}
+main {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  min-height: 0;
+}
+.editor-pane, .output-pane { min-height: 0; }
+.editor-pane {
+  border-right: 1px solid var(--line);
+  background: #101522;
+}
+#editor {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  padding: 0.8rem;
+  resize: none;
+  outline: none;
+  font: inherit;
+}
+.runtime-host {
+  height: 100%;
+  overflow: auto;
+  padding: 0.8rem;
+  display: grid;
+  gap: 0.8rem;
+  align-content: start;
+}
+.mirx-picture-window, .mirx-text-window, .mirx-dialog {
+  border: 1px solid #425783;
+  background: var(--panel);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.mirx-picture-window header, .mirx-text-window header {
+  background: #1c2640;
+  color: #bcd6ff;
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+}
+.console-pane {
+  border-top: 1px solid var(--line);
+  background: #0e1320;
+  display: grid;
+  grid-template-rows: auto 1fr;
+}
+.console-head { display:flex; justify-content:space-between; align-items:center; padding: 0.5rem 0.8rem; }
+#console {
+  margin: 0;
+  padding: 0.75rem;
+  overflow: auto;
+  color: #d5ffcc;
+  font-size: 0.8rem;
+}
+@media (max-width: 900px) {
+  body { grid-template-rows: auto auto 1fr 160px; }
+  main { grid-template-columns: 1fr; grid-template-rows: 300px 1fr; }
+  .editor-pane { border-right: 0; border-bottom: 1px solid var(--line); }
+}
