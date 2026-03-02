@@ -149,6 +149,31 @@ else {
   console.log('  ✓ nested if/else');
 }
 
+function testNestedParensCondition() {
+  const input = `
+if (%cur == 1 && (%sum == 2 || %sum == 3)) {
+  echo alive
+}
+elseif (%cur == 0 && (%sum == 3 || %sum == 4)) {
+  echo born
+}
+else {
+  echo dead
+}
+`;
+
+  const ast = parseMirc(input);
+  const ifNode = ast.body[0];
+
+  assert.equal(ifNode.type, 'IfStatement');
+  assert.ok(ifNode.condition.includes('(%sum == 2 || %sum == 3)'));
+  assert.ok(ifNode.alternate, 'Should have elseif');
+  assert.equal(ifNode.alternate.type, 'ElseifStatement');
+  assert.ok(ifNode.alternate.condition.includes('(%sum == 3 || %sum == 4)'));
+
+  console.log('  ✓ nested parens in if/elseif condition');
+}
+
 function testCodegenIfElse() {
   const input = `
 if ($1 == a) {
@@ -201,6 +226,7 @@ testSingleLineIfWithoutBraces();
 testSingleLineIfWithPipe();
 testMinimalWhitespace();
 testNestedIfElse();
+testNestedParensCondition();
 testCodegenIfElse();
 testCodegenIfElseifElse();
 console.log('\nAll if-then-else tests passed!');
