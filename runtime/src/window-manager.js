@@ -11,6 +11,10 @@ class PictureWindow {
     this.opts = opts;
     this.onPointerEvent = onPointerEvent;
     this._manager = manager;
+    this._moveRafPending = false;
+    this._lastMovePayload = null;
+    this._drawPicQueue = new Map();
+    this._drawPicLoading = new Set();
     this.meta = { x: opts.x || 0, y: opts.y || 0, w: opts.w || 320, h: opts.h || 240 };
 
     this.root = document.createElement('section');
@@ -100,19 +104,19 @@ class PictureWindow {
     const src = String(opts.src ?? '').trim();
     if (!src) return;
 
-    const draw = (image) => {
+    const draw = (image, drawOpts = opts) => {
       if (!image) return;
       const iw = Number(image.naturalWidth || image.width || 0);
       const ih = Number(image.naturalHeight || image.height || 0);
       if (iw <= 0 || ih <= 0) return;
 
-      const x = Number(opts.x) || 0;
-      const y = Number(opts.y) || 0;
-      const w = Number(opts.w);
-      const h = Number(opts.h);
+      const x = Number(drawOpts.x) || 0;
+      const y = Number(drawOpts.y) || 0;
+      const w = Number(drawOpts.w);
+      const h = Number(drawOpts.h);
       const dw = Number.isFinite(w) && w > 0 ? w : iw;
       const dh = Number.isFinite(h) && h > 0 ? h : ih;
-      const flags = opts.flags || {};
+      const flags = drawOpts.flags || {};
       const dx = flags.c ? x - dw / 2 : x;
       const dy = flags.c ? y - dh / 2 : y;
 
@@ -130,10 +134,10 @@ class PictureWindow {
         return;
       }
 
-      const sx = Number(opts.sx);
-      const sy = Number(opts.sy);
-      const sw = Number(opts.sw);
-      const sh = Number(opts.sh);
+      const sx = Number(drawOpts.sx);
+      const sy = Number(drawOpts.sy);
+      const sw = Number(drawOpts.sw);
+      const sh = Number(drawOpts.sh);
       const hasCrop = [sx, sy, sw, sh].every((n) => Number.isFinite(n));
       if (hasCrop) {
         this.ctx.drawImage(image, sx, sy, sw, sh, dx, dy, dw, dh);
@@ -149,8 +153,20 @@ class PictureWindow {
       return;
     }
 
+    const queue = this._drawPicQueue.get(src) || [];
+    queue.push({ ...opts });
+    this._drawPicQueue.set(src, queue);
+    if (this._drawPicLoading.has(src)) return;
+    this._drawPicLoading.add(src);
     this._manager?.loadImage?.(src).then((image) => {
-      draw(image);
+      const pending = this._drawPicQueue.get(src) || [];
+      this._drawPicQueue.delete(src);
+      if (!image) return;
+      for (const queued of pending) {
+        draw(image, queued);
+      }
+    }).finally(() => {
+      this._drawPicLoading.delete(src);
     });
   }
 
@@ -171,7 +187,16 @@ class PictureWindow {
       this.onPointerEvent('MUP', this.name, mapEvent(event));
     });
     this.canvas.addEventListener('mousemove', (event) => {
-      this.onPointerEvent('MMOVE', this.name, mapEvent(event));
+      this._lastMovePayload = mapEvent(event);
+      if (this._moveRafPending) return;
+      this._moveRafPending = true;
+      const flush = () => {
+        this._moveRafPending = false;
+        if (!this._lastMovePayload) return;
+        this.onPointerEvent('MMOVE', this.name, this._lastMovePayload);
+      };
+      if (typeof requestAnimationFrame === 'function') requestAnimationFrame(flush);
+      else setTimeout(flush, 16);
     });
   }
 

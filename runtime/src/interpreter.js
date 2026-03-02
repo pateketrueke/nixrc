@@ -1,6 +1,8 @@
 import { parseMirc } from '../../compiler/src/parser.js';
 import { tokenizeCommand, splitArgs } from '../../compiler/src/token-utils.js';
 
+const fnCache = new Map();
+
 function stripQuotes(v) {
   return v?.startsWith('"') && v?.endsWith('"') ? v.slice(1, -1) : v;
 }
@@ -61,8 +63,21 @@ function findMatchingParen(str, startIdx) {
   return -1;
 }
 
+function runCompiled(expr) {
+  const source = String(expr ?? '');
+  let fn = fnCache.get(source);
+  if (!fn) {
+    fn = Function(`"use strict"; return (${source});`);
+    fnCache.set(source, fn);
+  }
+  return fn();
+}
+
 function evalExpression(expr, ctx, args) {
-  let result = expr;
+  const asNumber = Number(expr);
+  if (Number.isFinite(asNumber)) return asNumber;
+
+  let result = String(expr ?? '');
   let changed = true;
   
   while (changed) {
@@ -113,7 +128,7 @@ function evalIdentifier(token, ctx, args) {
   if (name === 'calc') {
     const expr = evalExpression(String(rawArgs[0] ?? ''), ctx, args);
     try {
-      return Function(`"use strict"; return (${expr});`)();
+      return runCompiled(expr);
     } catch {
       return 0;
     }
@@ -214,7 +229,7 @@ function evalCondition(expr, ctx, args) {
   });
 
   try {
-    return Boolean(Function(`"use strict"; return (${replaced.join(' ')});`)());
+    return Boolean(runCompiled(replaced.join(' ')));
   } catch {
     return false;
   }
