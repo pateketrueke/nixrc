@@ -12,7 +12,7 @@ class PictureWindow {
     this.meta = { x: opts.x || 0, y: opts.y || 0, w: opts.w || 320, h: opts.h || 240 };
 
     this.root = document.createElement('section');
-    this.root.className = 'mirx-picture-window';
+    this.root.className = 'nixrc-picture-window';
     this.root.dataset.name = name;
 
     this.header = document.createElement('header');
@@ -75,7 +75,7 @@ class TextWindow {
     this.name = name;
     this.lines = [];
     this.root = document.createElement('section');
-    this.root.className = 'mirx-text-window';
+    this.root.className = 'nixrc-text-window';
     this.root.dataset.name = name;
     this.header = document.createElement('header');
     this.header.textContent = name;

@@ -144,7 +144,7 @@ function evalCondition(expr, ctx, args) {
   }
 }
 
-export class MirxInterpreter {
+export class NixrcInterpreter {
   constructor(ctx) {
     this.ctx = ctx;
     this.aliases = new Map();

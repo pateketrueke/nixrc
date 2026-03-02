@@ -15,7 +15,7 @@ export class DialogManager {
     if (!spec) return null;
 
     const root = document.createElement('section');
-    root.className = 'mirx-dialog';
+    root.className = 'nixrc-dialog';
     root.dataset.name = name;
 
     const title = document.createElement('h3');

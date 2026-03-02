@@ -1,4 +1,4 @@
-# mirx playground (MVP)
+# nixrc playground (MVP)
 
 Static playground shell with:
 

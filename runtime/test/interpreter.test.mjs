@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { EventBus } from '../src/event-bus.js';
-import { MirxInterpreter } from '../src/interpreter.js';
+import { NixrcInterpreter } from '../src/interpreter.js';
 import { HashStore, IniStore, FileStore } from '../src/subsystems.js';
 
 const logs = [];
@@ -62,7 +62,7 @@ on *:TEXT:hello:#:{
 }
 `;
 
-const i = new MirxInterpreter(ctx);
+const i = new NixrcInterpreter(ctx);
 i.load(script);
 i.call('start');
 

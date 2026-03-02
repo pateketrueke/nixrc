@@ -5,7 +5,7 @@ import process from 'node:process';
 import { transpile, emitDts } from './src/index.js';
 
 function usage() {
-  console.error('Usage: mirx compile <input.mrc> [--out <dir>] [--stdout] [--watch] [--emit-dts]');
+  console.error('Usage: nixrc compile <input.mrc> [--out <dir>] [--stdout] [--watch] [--emit-dts]');
 }
 
 function parseArgs(argv) {
