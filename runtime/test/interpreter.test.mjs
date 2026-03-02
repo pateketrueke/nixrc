@@ -57,18 +57,36 @@ alias start {
   msg # hello
 }
 
+alias regexdemo {
+  set %rx $regex("hello nixrc world","/nixrc/")
+  set %cap $regml(0)
+  set %r $rand(1,3)
+}
+
 on *:TEXT:hello:#:{
   echo -a event-fired
+}
+
+on *:MDOWN:@paint {
+  set %mx $mouse.x
+  set %my $mouse.y
 }
 `;
 
 const i = new NixrcInterpreter(ctx);
 i.load(script);
 i.call('start');
+i.call('regexdemo');
+events.emit('MDOWN', { match: '@paint', target: '@paint', x: 12, y: 34 });
 
 assert.equal(ctx.vars.get('%x'), '5');
 assert.equal(ctx.hash.hget('store', 'key'), 'value');
 assert.equal(ctx.ini.read('cfg', 'section', 'key'), 'value');
+assert.equal(ctx.vars.get('%rx'), '1');
+assert.equal(ctx.vars.get('%cap'), 'nixrc');
+assert.ok(Number(ctx.vars.get('%r')) >= 1 && Number(ctx.vars.get('%r')) <= 3);
+assert.equal(ctx.vars.get('%mx'), '12');
+assert.equal(ctx.vars.get('%my'), '34');
 assert.ok(logs.some((x) => x.includes('one')));
 assert.ok(logs.some((x) => x.includes('two')));
 assert.ok(logs.some((x) => x.includes('pong')));

@@ -10,6 +10,23 @@ function toNumber(v) {
   return Number.isFinite(n) ? n : 0;
 }
 
+function parseRegexArg(patternRaw) {
+  const raw = String(patternRaw ?? '').trim();
+  const slash = raw.match(/^\/(.+)\/([gimsuy]*)$/);
+  if (slash) {
+    try {
+      return new RegExp(slash[1], slash[2]);
+    } catch {
+      return null;
+    }
+  }
+  try {
+    return new RegExp(raw);
+  } catch {
+    return null;
+  }
+}
+
 function resolveToken(token, ctx, args = []) {
   if (token == null) return '';
   if (/^%[a-zA-Z_][a-zA-Z0-9_]*$/.test(token)) return ctx.vars.get(token) ?? '';
@@ -65,13 +82,15 @@ function evalExpression(expr, ctx, args) {
 }
 
 function evalIdentifier(token, ctx, args) {
-  if (token === '$nick') return ctx.irc.nick;
-  if (token === '$chan') return ctx.irc.chan;
-  if (token === '$server') return ctx.irc.server;
-  if (token === '$network') return ctx.irc.network;
+  if (token === '$nick') return ctx.event?.nick ?? ctx.irc.nick;
+  if (token === '$chan') return ctx.event?.chan ?? ctx.irc.chan;
+  if (token === '$server') return ctx.event?.server ?? ctx.irc.server;
+  if (token === '$network') return ctx.event?.network ?? ctx.irc.network;
   if (token === '$ctime') return Math.floor(Date.now() / 1000);
   if (token === '$time') return new Date().toTimeString().slice(0, 8);
   if (token === '$date') return new Date().toISOString().slice(0, 10);
+  if (token === '$mouse.x') return ctx.event?.x ?? ctx.mouse?.x ?? 0;
+  if (token === '$mouse.y') return ctx.event?.y ?? ctx.mouse?.y ?? 0;
 
   const call = token.match(/^\$([a-zA-Z_][a-zA-Z0-9_]*)\((.*)\)$/);
   if (!call) return token;
@@ -119,6 +138,39 @@ function evalIdentifier(token, ctx, args) {
   if (name === 'window') return ctx.windowManager.info(rawArgs[0]);
   if (name === 'mouse') return ctx.mouse?.[rawArgs[0]] ?? 0;
   if (name === 'did') return ctx.dialogs.didText(rawArgs[0], rawArgs[1]);
+  if (name === 'regex') {
+    const text = String(rawArgs[0] ?? '');
+    const re = parseRegexArg(rawArgs[1]);
+    if (!re) {
+      ctx.lastRegex = { matches: [], captures: [] };
+      return 0;
+    }
+    if (re.global) {
+      const matches = [...text.matchAll(re)];
+      const first = matches[0] || null;
+      ctx.lastRegex = {
+        matches: matches.map((m) => m[0]),
+        captures: first ? [...first] : [],
+      };
+      return matches.length;
+    }
+    const single = text.match(re);
+    ctx.lastRegex = {
+      matches: single ? [single[0]] : [],
+      captures: single ? [...single] : [],
+    };
+    return single ? 1 : 0;
+  }
+  if (name === 'regml') {
+    const idx = toNumber(rawArgs[0]);
+    return ctx.lastRegex?.captures?.[idx] ?? '';
+  }
+  if (name === 'rand') {
+    const min = Math.floor(toNumber(rawArgs[0]));
+    const max = Math.floor(toNumber(rawArgs[1]));
+    if (max < min) return min;
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+  }
   if (name === 'timer' && rawArgs[0] === 0) return ctx.timers.count();
   if (name === 'hget') return ctx.hash.hget(rawArgs[0], rawArgs[1]);
   if (name === 'readini') return ctx.ini.read(rawArgs[0], rawArgs[1], rawArgs[2]);
@@ -169,7 +221,15 @@ export class NixrcInterpreter {
           if (extraParts[0]) filter.id = Number(extraParts[0]) || extraParts[0];
         }
         this.ctx.eventBus.on(node.event, filter, (payload) => {
+          const prevEvent = this.ctx.event;
+          this.ctx.event = payload || {};
+          if (payload && typeof payload === 'object') {
+            if (payload.x != null) this.ctx.mouse.x = toNumber(payload.x);
+            if (payload.y != null) this.ctx.mouse.y = toNumber(payload.y);
+            if (payload.key != null) this.ctx.mouse.key = toNumber(payload.key);
+          }
           this.runStatements(node.body, payload, []);
+          this.ctx.event = prevEvent;
         });
       }
     }
@@ -205,6 +265,18 @@ export class NixrcInterpreter {
           y: Number(y),
           w: Number(w),
           h: Number(h),
+        });
+      } else if (ctrl.name === 'edit') {
+        const [text, id, x, y, w, h, ...flags] = cleanArgs;
+        spec.controls.push({
+          type: 'edit',
+          text: text.replace(/^"|"$/g, ''),
+          id: Number(id),
+          x: Number(x),
+          y: Number(y),
+          w: Number(w),
+          h: Number(h),
+          flags,
         });
       }
     }
@@ -322,6 +394,12 @@ export class NixrcInterpreter {
     if (n === 'drawdot') {
       const win = this.ctx.windowManager.get(resolved[1]);
       win?.drawDot(resolved[2], resolved[3], resolved[4], resolved[5]);
+      return;
+    }
+
+    if (n === 'drawfill') {
+      const win = this.ctx.windowManager.get(resolved[1]);
+      win?.drawFill(resolved[2], resolved[3], resolved[4], resolved[5]);
       return;
     }
 
