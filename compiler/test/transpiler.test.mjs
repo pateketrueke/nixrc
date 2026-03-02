@@ -20,7 +20,7 @@ const result = transpile(fixture, {
 });
 
 assert.equal(result.ast.type, 'Program');
-assert.ok(result.code.includes('from "mirx/runtime"'));
+assert.ok(result.code.includes('from "nixrc/runtime"'));
 assert.ok(result.code.includes('echo({'));
 assert.ok(result.code.includes('msg('));
 assert.ok(result.code.includes('timer('));

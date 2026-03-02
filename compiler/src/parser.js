@@ -274,14 +274,46 @@ function parseStatement(raw, lines, index) {
     }
   }
 
-  const aliasMatch = raw.match(/^alias\s+([^\s{]+)\s*\{$/i);
+  const aliasMatch = raw.match(/^alias\s+([^\s{]+)\s*\{/i);
   if (aliasMatch) {
+    const name = aliasMatch[1];
+    const afterAlias = raw.slice(aliasMatch[0].length).trim();
+    
+    if (afterAlias.endsWith('}')) {
+      const bodyRaw = afterAlias.slice(0, -1).trim();
+      const body = splitByPipe(bodyRaw).map(parseCommand).filter(Boolean);
+      return {
+        node: {
+          type: 'AliasDeclaration',
+          name,
+          body,
+        },
+        nextIndex: index + 1,
+      };
+    }
+    
+    if (afterAlias === '') {
+      const block = parseBlock(lines, index + 1);
+      return {
+        node: {
+          type: 'AliasDeclaration',
+          name,
+          body: block.body,
+        },
+        nextIndex: block.nextIndex,
+      };
+    }
+  }
+
+  const dialogMatch = raw.match(/^dialog\s+([^\s{]+)\s*\{/i);
+  if (dialogMatch) {
+    const name = dialogMatch[1];
     const block = parseBlock(lines, index + 1);
     return {
       node: {
-        type: 'AliasDeclaration',
-        name: aliasMatch[1],
-        body: block.body,
+        type: 'DialogDeclaration',
+        name,
+        controls: block.body.filter((n) => n && n.type === 'CommandStatement'),
       },
       nextIndex: block.nextIndex,
     };

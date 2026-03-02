@@ -1,10 +1,10 @@
 {
-  "name": "@mirx/compiler",
+  "name": "@nixrc/compiler",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "bin": {
-    "mirx": "./cli.js"
+    "nixrc": "./cli.js"
   },
   "scripts": {
     "test": "node ./test/transpiler.test.mjs"

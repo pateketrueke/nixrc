@@ -1,5 +1,5 @@
-import { MirxCanvas } from './mirx-canvas.js';
-import { MirxDialogElement } from './mirx-dialog.js';
+import { NixrcCanvas } from './nixrc-canvas.js';
+import { NixrcDialogElement } from './nixrc-dialog.js';
 
 const registry = new Map();
 
@@ -10,7 +10,7 @@ export function defineDialog(name, spec) {
 export function mountDialog(name, host = document.body) {
   const spec = registry.get(name);
   if (!spec) throw new Error(`Dialog not defined: ${name}`);
-  const el = document.createElement('mirx-dialog');
+  const el = document.createElement('nixrc-dialog');
   el.setAttribute('name', name);
   host.appendChild(el);
   el.render(spec);
@@ -61,4 +61,4 @@ export class TextLabel {
   }
 }
 
-export { MirxCanvas, MirxDialogElement };
+export { NixrcCanvas, NixrcDialogElement };

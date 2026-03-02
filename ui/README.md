@@ -1,11 +1,11 @@
-# mirx/ui (MVP)
+# nixrc/ui (MVP)
 
-Web-component UI layer for mirx dialogs and canvases.
+Web-component UI layer for nixrc dialogs and canvases.
 
 ## Includes
 
-- `<mirx-canvas>` custom element
-- `<mirx-dialog>` custom element
+- `<nixrc-canvas>` custom element
+- `<nixrc-dialog>` custom element
 - Native JS API (`Dialog`, `Button`, `TextLabel`)
 - Dialog registry (`defineDialog`, `mountDialog`)
 - Base theme file (`ui/themes/system.css`)

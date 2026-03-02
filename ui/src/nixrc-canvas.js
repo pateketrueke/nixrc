@@ -1,4 +1,4 @@
-export class MirxCanvas extends HTMLElement {
+export class NixrcCanvas extends HTMLElement {
   static get observedAttributes() {
     return ['width', 'height'];
   }
@@ -12,7 +12,7 @@ export class MirxCanvas extends HTMLElement {
     this.ctx = this.canvas.getContext('2d');
     const style = document.createElement('style');
     style.textContent = `
-      :host { display:block; border:1px solid var(--mirx-border, #667); background: #0c1020; }
+      :host { display:block; border:1px solid var(--nixrc-border, #667); background: #0c1020; }
       canvas { display:block; width:100%; height:auto; }
     `;
     root.append(style, this.canvas);
@@ -61,4 +61,4 @@ export class MirxCanvas extends HTMLElement {
   }
 }
 
-customElements.define('mirx-canvas', MirxCanvas);
+customElements.define('nixrc-canvas', NixrcCanvas);

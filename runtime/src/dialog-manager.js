@@ -14,8 +14,8 @@ export class DialogManager {
     const spec = this.defs.get(name);
     if (!spec) return null;
 
-    const root = document.createElement(modal ? 'dialog' : 'section');
-    root.className = 'mirx-dialog';
+    const root = document.createElement('section');
+    root.className = 'nixrc-dialog';
     root.dataset.name = name;
 
     const title = document.createElement('h3');
@@ -33,7 +33,13 @@ export class DialogManager {
 
     this.host.appendChild(root);
     this.opened.set(name, { root, controls, spec });
-    this.eventBus.emit('DIALOG', { name, event: 'init' });
+    root.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-dlg-button]');
+      if (!btn) return;
+      const buttonId = btn.dataset.id;
+      this.eventBus.emit('DIALOG', { name, match: name, event: 'sclick', target: 'sclick', id: Number(buttonId) });
+    });
+    this.eventBus.emit('DIALOG', { name, match: name, event: 'init', target: 'init' });
     return root;
   }
 
@@ -111,6 +117,7 @@ function renderControl(control) {
   if (type === 'button') {
     const el = document.createElement('button');
     el.dataset.id = String(id);
+    el.dataset.dlgButton = 'true';
     el.textContent = control.text || 'Button';
     return el;
   }

@@ -294,7 +294,7 @@ export function generate(program, opts = {}) {
 
   const importList = [...ctx.imports].sort();
   const importLine = importList.length
-    ? `import { ${importList.join(', ')} } from \"mirx/runtime\";\n\n`
+    ? `import { ${importList.join(', ')} } from \"nixrc/runtime\";\n\n`
     : '';
 
   const banner = opts.banner ? `// ${opts.banner}\n` : '';

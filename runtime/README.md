@@ -1,4 +1,4 @@
-# mirx/runtime (MVP)
+# nixrc/runtime (MVP)
 
 Browser runtime for mIRC-style scripts.
 

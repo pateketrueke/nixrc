@@ -118,8 +118,8 @@ export class IrcShim {
     this.eventBus = eventBus;
     this.network = 'mocknet';
     this.server = 'mock.server';
-    this.nick = 'mirx';
-    this.chan = '#mirx';
+    this.nick = 'nixrc';
+    this.chan = '#nixrc';
   }
 
   connect(server) {

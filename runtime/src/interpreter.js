@@ -19,11 +19,59 @@ function resolveToken(token, ctx, args = []) {
   return stripQuotes(token);
 }
 
+function findMatchingParen(str, startIdx) {
+  let depth = 0;
+  for (let i = startIdx; i < str.length; i += 1) {
+    if (str[i] === '(') depth += 1;
+    else if (str[i] === ')') {
+      depth -= 1;
+      if (depth === 0) return i;
+    }
+  }
+  return -1;
+}
+
+function evalExpression(expr, ctx, args) {
+  let result = expr;
+  let changed = true;
+  
+  while (changed) {
+    changed = false;
+    
+    result = result.replace(/%([a-zA-Z_][a-zA-Z0-9_]*)/g, (_m, n) => {
+      changed = true;
+      return ctx.vars.get(`%${n}`) ?? 0;
+    });
+    
+    const dollarIdx = result.indexOf('$');
+    if (dollarIdx !== -1) {
+      const afterDollar = result.slice(dollarIdx + 1);
+      const fnMatch = afterDollar.match(/^([a-zA-Z_][a-zA-Z0-9_]*)\(/);
+      if (fnMatch) {
+        const fn = fnMatch[1];
+        const openParen = dollarIdx + 1 + fnMatch[1].length;
+        const closeParen = findMatchingParen(result, openParen);
+        if (closeParen !== -1) {
+          const fnArgs = result.slice(openParen + 1, closeParen);
+          const value = evalIdentifier(`$${fn}(${fnArgs})`, ctx, args);
+          result = result.slice(0, dollarIdx) + value + result.slice(closeParen + 1);
+          changed = true;
+        }
+      }
+    }
+  }
+  
+  return result;
+}
+
 function evalIdentifier(token, ctx, args) {
   if (token === '$nick') return ctx.irc.nick;
   if (token === '$chan') return ctx.irc.chan;
   if (token === '$server') return ctx.irc.server;
   if (token === '$network') return ctx.irc.network;
+  if (token === '$ctime') return Math.floor(Date.now() / 1000);
+  if (token === '$time') return new Date().toTimeString().slice(0, 8);
+  if (token === '$date') return new Date().toISOString().slice(0, 10);
 
   const call = token.match(/^\$([a-zA-Z_][a-zA-Z0-9_]*)\((.*)\)$/);
   if (!call) return token;
@@ -31,14 +79,33 @@ function evalIdentifier(token, ctx, args) {
   const rawArgs = splitArgs(call[2]).map((x) => resolveToken(x.trim(), ctx, args));
 
   if (name === 'calc') {
-    const expr = String(rawArgs[0] ?? '')
-      .replace(/%([a-zA-Z_][a-zA-Z0-9_]*)/g, (_m, n) => ctx.vars.get(`%${n}`) ?? 0);
+    const expr = evalExpression(String(rawArgs[0] ?? ''), ctx, args);
     try {
       return Function(`"use strict"; return (${expr});`)();
     } catch {
       return 0;
     }
   }
+  if (name === 'asctime') {
+    const format = String(rawArgs[0] ?? '');
+    const now = new Date();
+    if (format === 's') return now.getSeconds();
+    if (format === 'n') return now.getMinutes();
+    if (format === 'H') return now.getHours();
+    if (format === 'd') return now.getDate();
+    if (format === 'm') return now.getMonth() + 1;
+    if (format === 'yyyy') return now.getFullYear();
+    if (format.includes(':')) {
+      return now.toTimeString().slice(0, 8);
+    }
+    return now.toISOString();
+  }
+  if (name === 'sin') return Math.sin(toNumber(rawArgs[0]) * Math.PI / 180);
+  if (name === 'cos') return Math.cos(toNumber(rawArgs[0]) * Math.PI / 180);
+  if (name === 'tan') return Math.tan(toNumber(rawArgs[0]) * Math.PI / 180);
+  if (name === 'sqrt') return Math.sqrt(toNumber(rawArgs[0]));
+  if (name === 'abs') return Math.abs(toNumber(rawArgs[0]));
+  if (name === 'int') return Math.floor(toNumber(rawArgs[0]));
   if (name === 'upper') return String(rawArgs[0] ?? '').toUpperCase();
   if (name === 'lower') return String(rawArgs[0] ?? '').toLowerCase();
   if (name === 'len') return String(rawArgs[0] ?? '').length;
@@ -77,10 +144,11 @@ function evalCondition(expr, ctx, args) {
   }
 }
 
-export class MirxInterpreter {
+export class NixrcInterpreter {
   constructor(ctx) {
     this.ctx = ctx;
     this.aliases = new Map();
+    this.dialogs = new Map();
   }
 
   load(source) {
@@ -90,14 +158,57 @@ export class MirxInterpreter {
       if (node.type === 'AliasDeclaration') {
         this.aliases.set(node.name.toLowerCase(), node);
       }
+      if (node.type === 'DialogDeclaration') {
+        const spec = this.parseDialogSpec(node);
+        this.dialogs.set(node.name.toLowerCase(), spec);
+      }
       if (node.type === 'EventHandler') {
-        this.ctx.eventBus.on(node.event, { match: node.match || '*', target: node.target || '*' }, (payload) => {
+        const filter = { match: node.match || '*', target: node.target || '*' };
+        if (node.extra) {
+          const extraParts = node.extra.split(':').filter(Boolean);
+          if (extraParts[0]) filter.id = Number(extraParts[0]) || extraParts[0];
+        }
+        this.ctx.eventBus.on(node.event, filter, (payload) => {
           this.runStatements(node.body, payload, []);
         });
       }
     }
 
     return ast;
+  }
+
+  parseDialogSpec(node) {
+    const spec = { title: '', controls: [] };
+    for (const ctrl of node.controls || []) {
+      const cleanArgs = ctrl.args.map((a) => String(a).replace(/,$/, ''));
+      
+      if (ctrl.name === 'title' && cleanArgs[0]) {
+        spec.title = cleanArgs[0].replace(/^"|"$/g, '');
+      } else if (ctrl.name === 'text') {
+        const [text, id, x, y, w, h] = cleanArgs;
+        spec.controls.push({
+          type: 'text',
+          text: text.replace(/^"|"$/g, ''),
+          id: Number(id),
+          x: Number(x),
+          y: Number(y),
+          w: Number(w),
+          h: Number(h),
+        });
+      } else if (ctrl.name === 'button') {
+        const [text, id, x, y, w, h] = cleanArgs;
+        spec.controls.push({
+          type: 'button',
+          text: text.replace(/^"|"$/g, ''),
+          id: Number(id),
+          x: Number(x),
+          y: Number(y),
+          w: Number(w),
+          h: Number(h),
+        });
+      }
+    }
+    return spec;
   }
 
   call(alias, args = []) {
@@ -146,7 +257,11 @@ export class MirxInterpreter {
 
     if (n === 'set' || n === 'var') {
       const key = args[0];
-      this.ctx.vars.set(key, resolved.slice(1).join(' '));
+      let valueArgs = resolved.slice(1);
+      if (valueArgs[0] === '=') {
+        valueArgs = valueArgs.slice(1);
+      }
+      this.ctx.vars.set(key, valueArgs.join(' '));
       return;
     }
 
@@ -156,8 +271,24 @@ export class MirxInterpreter {
     }
 
     if (n === 'echo') {
-      const text = resolved.filter((x) => typeof x === 'string').join(' ');
+      const text = resolved.map((x) => String(x)).join(' ');
       this.ctx.log('echo', text);
+      return;
+    }
+
+    if (n === 'inc') {
+      const key = args[0];
+      const current = toNumber(this.ctx.vars.get(key));
+      const amount = resolved[1] ? toNumber(resolved[1]) : 1;
+      this.ctx.vars.set(key, current + amount);
+      return;
+    }
+
+    if (n === 'dec') {
+      const key = args[0];
+      const current = toNumber(this.ctx.vars.get(key));
+      const amount = resolved[1] ? toNumber(resolved[1]) : 1;
+      this.ctx.vars.set(key, current - amount);
       return;
     }
 
@@ -234,7 +365,11 @@ export class MirxInterpreter {
       const mode = String(resolved[0] || '');
       const name = resolved[1];
       if (mode.includes('k')) this.ctx.dialogs.close(name);
-      else this.ctx.dialogs.open(name, mode.includes('m'));
+      else {
+        const spec = this.dialogs.get(String(name).toLowerCase());
+        this.ctx.dialogs.defineDialog(name, spec);
+        this.ctx.dialogs.open(name, mode.includes('m'));
+      }
       return;
     }
 
@@ -244,8 +379,8 @@ export class MirxInterpreter {
       const id = resolved[2];
       const text = resolved.slice(3).join(' ');
       if (flag.includes('ra')) this.ctx.dialogs.didReplaceAll(dlg, id, text);
-      if (flag.includes('a')) this.ctx.dialogs.didAppend(dlg, id, text);
-      if (flag.includes('r')) this.ctx.dialogs.didReset(dlg, id);
+      else if (flag.includes('a')) this.ctx.dialogs.didAppend(dlg, id, text);
+      else if (flag.includes('r')) this.ctx.dialogs.didReset(dlg, id);
       return;
     }
 

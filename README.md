@@ -11,7 +11,7 @@ mIRC's scripting language is a surprisingly expressive event-driven system with 
 - **Runtime** — interpret `.mrc` scripts in the browser or any web-platform compatible runtime
 - **Transpiler** — compile `.mrc` to tree-shakeable TypeScript/JavaScript (`nixrc compile script.mrc`)
 - **Subsystems** — dialogs, text windows, timers, sockets, IRC events, file I/O (MVP shims included)
-- **UI framework** — `<mirx-dialog>` and `<mirx-canvas>` web components + native JS API
+- **UI framework** — `<nixrc-dialog>` and `<nixrc-canvas>` web components + native JS API
 - **Playground** — live editor shell with URL sharing in `playground/`
 
 ## Implemented Modules

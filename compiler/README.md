@@ -1,4 +1,4 @@
-# @mirx/compiler (MVP)
+# @nixrc/compiler (MVP)
 
 Minimal mIRC-to-TypeScript transpiler.
 

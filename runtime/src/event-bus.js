@@ -30,7 +30,12 @@ export class EventBus {
 function matchesFilter(filter, payload) {
   for (const [k, v] of Object.entries(filter || {})) {
     if (v === '*' || v === '') continue;
-    if (String(payload[k] ?? '') !== String(v)) return false;
+    const pv = payload[k];
+    if (pv === undefined || pv === '') {
+      if (v !== '*' && v !== '') return false;
+      continue;
+    }
+    if (String(pv) !== String(v)) return false;
   }
   return true;
 }

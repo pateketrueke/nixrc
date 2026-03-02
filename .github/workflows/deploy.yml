@@ -1,0 +1,36 @@
+name: Deploy
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - "site/**"
+      - "playground/**"
+      - "runtime/**"
+      - "compiler/**"
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Assemble deploy directory
+        run: |
+          mkdir -p dist/play dist/runtime dist/compiler
+          cp -r site/. dist/
+          cp -r playground/. dist/play/
+          cp -r runtime/. dist/runtime/
+          cp -r compiler/. dist/compiler/
+          echo "nixrc.dev" > dist/CNAME
+
+      - name: Deploy to gh-pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: dist
+          publish_branch: gh-pages

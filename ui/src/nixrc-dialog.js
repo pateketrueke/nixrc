@@ -50,7 +50,7 @@ function renderControl(control) {
   return el;
 }
 
-export class MirxDialogElement extends HTMLElement {
+export class NixrcDialogElement extends HTMLElement {
   constructor() {
     super();
     this.attachShadow({ mode: 'open' });
@@ -71,13 +71,13 @@ export class MirxDialogElement extends HTMLElement {
     style.textContent = `
       :host {
         display:block;
-        border:1px solid var(--mirx-border, #8a8a8a);
-        background: var(--mirx-bg, #f0f0f0);
+        border:1px solid var(--nixrc-border, #8a8a8a);
+        background: var(--nixrc-bg, #f0f0f0);
         color: #111;
         width: max-content;
         min-width: 240px;
       }
-      .chrome { padding: 8px; font: 13px var(--mirx-font, "Segoe UI", sans-serif); }
+      .chrome { padding: 8px; font: 13px var(--nixrc-font, "Segoe UI", sans-serif); }
       .title { font-weight: 600; margin-bottom: 6px; }
       .stage { position:relative; min-height: 150px; min-width: 220px; background: #fff; border:1px solid #bbb; }
       button { cursor: pointer; }
@@ -124,4 +124,4 @@ export class MirxDialogElement extends HTMLElement {
   }
 }
 
-customElements.define('mirx-dialog', MirxDialogElement);
+customElements.define('nixrc-dialog', NixrcDialogElement);

@@ -3,7 +3,7 @@ import { WindowManager } from './window-manager.js';
 import { DialogManager } from './dialog-manager.js';
 import { TimerManager } from './timer-manager.js';
 import { HashStore, IniStore, FileStore, SocketShim, IrcShim } from './subsystems.js';
-import { MirxInterpreter } from './interpreter.js';
+import { NixrcInterpreter } from './interpreter.js';
 
 export function createRuntime(options = {}) {
   const host = options.host || document.body;
@@ -34,7 +34,7 @@ export function createRuntime(options = {}) {
     log: logger,
   };
 
-  const interpreter = new MirxInterpreter(ctx);
+  const interpreter = new NixrcInterpreter(ctx);
 
   function reset() {
     timers.stopAll();
@@ -65,4 +65,4 @@ export function createRuntime(options = {}) {
   };
 }
 
-export { EventBus, WindowManager, DialogManager, TimerManager, MirxInterpreter };
+export { EventBus, WindowManager, DialogManager, TimerManager, NixrcInterpreter };

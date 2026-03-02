@@ -24,6 +24,19 @@ header {
   justify-content: space-between;
   align-items: center;
   gap: 1rem;
+  flex-wrap: wrap;
+}
+.hint {
+  width: 100%;
+  font-size: 0.75rem;
+  color: var(--muted);
+  margin-top: 0.3rem;
+}
+.hint code {
+  background: var(--panel);
+  padding: 0.1rem 0.3rem;
+  border-radius: 3px;
+  color: var(--accent);
 }
 .actions { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
 button, select {
@@ -62,13 +75,31 @@ main {
   gap: 0.8rem;
   align-content: start;
 }
-.mirx-picture-window, .mirx-text-window, .mirx-dialog {
+.nixrc-picture-window, .nixrc-text-window, .nixrc-dialog {
   border: 1px solid #425783;
   background: var(--panel);
   border-radius: 10px;
   overflow: hidden;
 }
-.mirx-picture-window header, .mirx-text-window header {
+.nixrc-dialog {
+  padding: 0.8rem;
+  min-width: 200px;
+}
+.nixrc-dialog h3 {
+  margin: 0 0 0.5rem 0;
+  font-size: 0.9rem;
+  color: var(--accent);
+}
+.nixrc-dialog button {
+  cursor: pointer;
+  min-width: 2rem;
+}
+.nixrc-dialog label {
+  display: block;
+  padding: 0.3rem 0;
+  color: var(--text);
+}
+.nixrc-picture-window header, .nixrc-text-window header {
   background: #1c2640;
   color: #bcd6ff;
   font-size: 0.75rem;
