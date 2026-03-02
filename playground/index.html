@@ -21,7 +21,10 @@
 
     <main>
       <section class="editor-pane">
-        <textarea id="editor" spellcheck="false"></textarea>
+        <div class="editor-wrap">
+          <pre id="hl" aria-hidden="true"></pre>
+          <textarea id="editor" spellcheck="false"></textarea>
+        </div>
       </section>
       <section class="output-pane">
         <div id="host" class="runtime-host"></div>

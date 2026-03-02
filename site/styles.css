@@ -7,6 +7,12 @@
   --primary: #4da6ff;
   --accent: #ffb347;
   --ok: #4cd6a8;
+  --hl-comment: #6272a4;
+  --hl-ident: #8be9fd;
+  --hl-var: #f1fa8c;
+  --hl-kw: #ff79c6;
+  --hl-num: #bd93f9;
+  --hl-str: #f1fa8c;
   --radius: 18px;
 }
 
@@ -134,6 +140,31 @@ h1 {
   min-height: 245px;
   padding: 1rem 1.1rem 1.3rem;
   color: #b8e2ff;
+}
+
+.hl-comment {
+  color: var(--hl-comment);
+  font-style: italic;
+}
+
+.hl-ident {
+  color: var(--hl-ident);
+}
+
+.hl-var {
+  color: var(--hl-var);
+}
+
+.hl-kw {
+  color: var(--hl-kw);
+}
+
+.hl-num {
+  color: var(--hl-num);
+}
+
+.hl-str {
+  color: var(--hl-str);
 }
 
 main section {
