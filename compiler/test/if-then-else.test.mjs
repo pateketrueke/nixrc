@@ -197,6 +197,50 @@ alias loop {
   console.log('  ✓ while with opening brace on same line');
 }
 
+function testClosingBraceElseSameLine() {
+  const input = `
+if ($1 == a) {
+  echo -s a
+} else {
+  echo -s not a
+}
+`;
+
+  const ast = parseMirc(input);
+  const ifNode = ast.body[0];
+
+  assert.equal(ifNode.type, 'IfStatement');
+  assert.ok(ifNode.alternate, 'Should have else');
+  assert.equal(ifNode.alternate.type, 'ElseStatement');
+  assert.equal(ifNode.alternate.body.length, 1);
+  assert.equal(ifNode.alternate.body[0].name, 'echo');
+
+  console.log('  ✓ closing brace + else on same line');
+}
+
+function testClosingBraceElseifSameLine() {
+  const input = `
+if ($1 == a) {
+  echo -s a
+} elseif ($1 == b) {
+  echo -s b
+} else {
+  echo -s other
+}
+`;
+
+  const ast = parseMirc(input);
+  const ifNode = ast.body[0];
+
+  assert.equal(ifNode.type, 'IfStatement');
+  assert.ok(ifNode.alternate, 'Should have elseif');
+  assert.equal(ifNode.alternate.type, 'ElseifStatement');
+  assert.ok(ifNode.alternate.alternate, 'Should have else after elseif');
+  assert.equal(ifNode.alternate.alternate.type, 'ElseStatement');
+
+  console.log('  ✓ closing brace + elseif/else on same line');
+}
+
 function testCodegenIfElse() {
   const input = `
 if ($1 == a) {
@@ -251,6 +295,8 @@ testMinimalWhitespace();
 testNestedIfElse();
 testNestedParensCondition();
 testWhileWithOpeningBraceSameLine();
+testClosingBraceElseSameLine();
+testClosingBraceElseifSameLine();
 testCodegenIfElse();
 testCodegenIfElseifElse();
 console.log('\nAll if-then-else tests passed!');
