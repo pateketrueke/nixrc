@@ -10,7 +10,13 @@ export function createRuntime(options = {}) {
   const logger = options.log || (() => {});
 
   const eventBus = new EventBus();
-  const windowManager = new WindowManager(host);
+  const mouse = { x: 0, y: 0, key: 0 };
+  const windowManager = new WindowManager(host, (event, name, payload) => {
+    mouse.x = Number(payload?.x) || 0;
+    mouse.y = Number(payload?.y) || 0;
+    mouse.key = Number(payload?.key) || 0;
+    eventBus.emit(event, { ...payload, match: name, target: name, window: name });
+  });
   const dialogs = new DialogManager(host, eventBus);
   const timers = new TimerManager((x) => logger('timer', JSON.stringify(x)));
   const hash = new HashStore();
@@ -30,7 +36,9 @@ export function createRuntime(options = {}) {
     files,
     sockets,
     irc,
-    mouse: { x: 0, y: 0, key: 0 },
+    mouse,
+    lastRegex: { matches: [], captures: [] },
+    event: {},
     log: logger,
   };
 
