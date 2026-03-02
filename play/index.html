@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <base href="/play/" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>mirx playground</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header>
+      <strong>mirx playground</strong>
+      <div class="actions">
+        <select id="examples"></select>
+        <button id="share">Share</button>
+        <button id="run">Run</button>
+        <label><input id="autorun" type="checkbox" checked /> Auto-run</label>
+      </div>
+      <div class="hint">Select an example or click Run to execute <code>start</code> alias</div>
+    </header>
+
+    <main>
+      <section class="editor-pane">
+        <textarea id="editor" spellcheck="false"></textarea>
+      </section>
+      <section class="output-pane">
+        <div id="host" class="runtime-host"></div>
+      </section>
+    </main>
+
+    <section class="console-pane">
+      <div class="console-head">
+        <strong>Console</strong>
+        <button id="clear-console">Clear</button>
+      </div>
+      <pre id="console"></pre>
+    </section>
+
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>
