@@ -2,6 +2,7 @@ import { parseMirc } from '../../compiler/src/parser.js';
 import { tokenizeCommand, splitArgs } from '../../compiler/src/token-utils.js';
 import { evaluateExpression, evaluateCondition as safeEvalCondition } from './expression-eval.js';
 import { CommandError, IdentifierError, WindowError, DialogError } from './errors.js';
+import { LoopGuard } from './loop-guard.js';
 
 function stripQuotes(v) {
   return v?.startsWith('"') && v?.endsWith('"') ? v.slice(1, -1) : v;
@@ -348,10 +349,12 @@ export class NixrcInterpreter {
         }
       }
       if (stmt.type === 'WhileStatement') {
-        let guard = 0;
-        while (guard < 200 && evalCondition(stmt.condition, this.ctx, args)) {
+        const loopGuard = new LoopGuard(this.ctx.config?.loopLimits || {});
+        while (true) {
+          const check = loopGuard.check();
+          if (!check.ok) break;
+          if (!evalCondition(stmt.condition, this.ctx, args)) break;
           this.runStatements(stmt.body, payload, args);
-          guard += 1;
         }
       }
       if (stmt.type === 'SequenceStatement') this.runStatements(stmt.body, payload, args);
