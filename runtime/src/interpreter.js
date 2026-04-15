@@ -1,6 +1,7 @@
 import { parseMirc } from '../../compiler/src/parser.js';
 import { tokenizeCommand, splitArgs } from '../../compiler/src/token-utils.js';
 import { evaluateExpression, evaluateCondition as safeEvalCondition } from './expression-eval.js';
+import { CommandError, IdentifierError, WindowError, DialogError } from './errors.js';
 
 function stripQuotes(v) {
   return v?.startsWith('"') && v?.endsWith('"') ? v.slice(1, -1) : v;
@@ -42,7 +43,10 @@ function parseRegexArg(patternRaw) {
 }
 
 function resolveToken(token, ctx, args = []) {
-  if (token == null) return '';
+  if (token == null) {
+    ctx.errorHandler?.handle(new IdentifierError('Null token encountered', 'null', args));
+    return '';
+  }
   if (/^%[a-zA-Z_][a-zA-Z0-9_]*$/.test(token)) return ctx.vars.get(token) ?? '';
   if (/^\$\d+$/.test(token)) return args[Number(token.slice(1)) - 1] ?? '';
   if (/^-?\d+(\.\d+)?$/.test(token)) return Number(token);
@@ -559,6 +563,8 @@ export class NixrcInterpreter {
       return;
     }
 
-    this.ctx.log('warn', `Unsupported command: ${name} ${args.join(' ')}`);
+    this.ctx.errorHandler?.handle(
+      new CommandError(`Unsupported command: ${name}`, name, args)
+    );
   }
 }
