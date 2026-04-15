@@ -1,3 +1,6 @@
+import { createFileBackend } from './file-backend.js';
+import { createSocketBackend } from './socket-backend.js';
+
 export class HashStore {
   constructor() {
     this.tables = new Map();
@@ -48,8 +51,6 @@ export class IniStore {
   }
 }
 
-import { createFileBackend } from './file-backend.js';
-
 export class FileStore {
   constructor(backend = null) {
     this.backend = backend || createFileBackend();
@@ -98,30 +99,32 @@ export class FileStore {
 }
 
 export class SocketShim {
-  constructor(eventBus) {
-    this.sockets = new Map();
+  constructor(eventBus, backend = null) {
     this.eventBus = eventBus;
+    this.backend = backend || createSocketBackend(eventBus);
+    this.sockets = new Map();
   }
 
-  sockopen(name, host, port) {
-    this.sockets.set(name, { host, port, sent: 0, rcvd: 0 });
-    this.eventBus.emit('SOCKOPEN', { name, host, port });
+  async sockopen(name, host, port, opts = {}) {
+    await this.backend.open(name, host, port, opts);
+    this.sockets.set(name, { host, port });
   }
 
-  sockwrite(name, text) {
-    const s = this.sockets.get(name);
-    if (!s) return;
-    s.sent += String(text).length;
-    this.eventBus.emit('SOCKREAD', { name, data: `echo:${text}` });
+  async sockwrite(name, data) {
+    await this.backend.write(name, data);
   }
 
-  sockclose(name) {
+  async sockclose(name) {
+    await this.backend.close(name);
     this.sockets.delete(name);
-    this.eventBus.emit('SOCKCLOSE', { name });
   }
 
   sock(name) {
-    return this.sockets.get(name) || null;
+    return this.backend.getInfo(name) || this.sockets.get(name) || null;
+  }
+
+  state(name) {
+    return this.backend.getState(name);
   }
 }
 
