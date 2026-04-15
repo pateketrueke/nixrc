@@ -311,6 +311,39 @@ function parseStatement(raw, lines, index) {
     }
   }
 
+  const labelMatch = raw.match(/^:([a-zA-Z_][a-zA-Z0-9_]*)$/);
+  if (labelMatch) {
+    return {
+      node: {
+        type: 'LabelStatement',
+        name: labelMatch[1],
+      },
+      nextIndex: index + 1,
+    };
+  }
+
+  const gotoMatch = raw.match(/^goto\s+([a-zA-Z_][a-zA-Z0-9_]*)$/i);
+  if (gotoMatch) {
+    return {
+      node: {
+        type: 'GotoStatement',
+        label: gotoMatch[1],
+      },
+      nextIndex: index + 1,
+    };
+  }
+
+  const returnMatch = raw.match(/^return\s*(.*)$/i);
+  if (returnMatch) {
+    return {
+      node: {
+        type: 'ReturnStatement',
+        value: returnMatch[1].trim() || null,
+      },
+      nextIndex: index + 1,
+    };
+  }
+
   const aliasMatch = raw.match(/^alias\s+([^\s{]+)\s*\{/i);
   if (aliasMatch) {
     const name = aliasMatch[1];

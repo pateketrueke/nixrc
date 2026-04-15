@@ -1,7 +1,8 @@
 import { parseMirc } from '../../compiler/src/parser.js';
 import { tokenizeCommand, splitArgs } from '../../compiler/src/token-utils.js';
-
-const fnCache = new Map();
+import { evaluateExpression, evaluateCondition as safeEvalCondition } from './expression-eval.js';
+import { CommandError, IdentifierError, WindowError, DialogError } from './errors.js';
+import { LoopGuard } from './loop-guard.js';
 
 function stripQuotes(v) {
   return v?.startsWith('"') && v?.endsWith('"') ? v.slice(1, -1) : v;
@@ -43,7 +44,10 @@ function parseRegexArg(patternRaw) {
 }
 
 function resolveToken(token, ctx, args = []) {
-  if (token == null) return '';
+  if (token == null) {
+    ctx.errorHandler?.handle(new IdentifierError('Null token encountered', 'null', args));
+    return '';
+  }
   if (/^%[a-zA-Z_][a-zA-Z0-9_]*$/.test(token)) return ctx.vars.get(token) ?? '';
   if (/^\$\d+$/.test(token)) return args[Number(token.slice(1)) - 1] ?? '';
   if (/^-?\d+(\.\d+)?$/.test(token)) return Number(token);
@@ -51,62 +55,22 @@ function resolveToken(token, ctx, args = []) {
   return stripQuotes(token);
 }
 
-function findMatchingParen(str, startIdx) {
-  let depth = 0;
-  for (let i = startIdx; i < str.length; i += 1) {
-    if (str[i] === '(') depth += 1;
-    else if (str[i] === ')') {
-      depth -= 1;
-      if (depth === 0) return i;
-    }
-  }
-  return -1;
-}
-
-function runCompiled(expr) {
-  const source = String(expr ?? '');
-  let fn = fnCache.get(source);
-  if (!fn) {
-    fn = Function(`"use strict"; return (${source});`);
-    fnCache.set(source, fn);
-  }
-  return fn();
-}
-
 function evalExpression(expr, ctx, args) {
   const asNumber = Number(expr);
   if (Number.isFinite(asNumber)) return asNumber;
 
-  let result = String(expr ?? '');
-  let changed = true;
-  
-  while (changed) {
-    changed = false;
-    
-    result = result.replace(/%([a-zA-Z_][a-zA-Z0-9_]*)/g, (_m, n) => {
-      changed = true;
-      return ctx.vars.get(`%${n}`) ?? 0;
-    });
-    
-    const dollarIdx = result.indexOf('$');
-    if (dollarIdx !== -1) {
-      const afterDollar = result.slice(dollarIdx + 1);
-      const fnMatch = afterDollar.match(/^([a-zA-Z_][a-zA-Z0-9_]*)\(/);
-      if (fnMatch) {
-        const fn = fnMatch[1];
-        const openParen = dollarIdx + 1 + fnMatch[1].length;
-        const closeParen = findMatchingParen(result, openParen);
-        if (closeParen !== -1) {
-          const fnArgs = result.slice(openParen + 1, closeParen);
-          const value = evalIdentifier(`$${fn}(${fnArgs})`, ctx, args);
-          result = result.slice(0, dollarIdx) + value + result.slice(closeParen + 1);
-          changed = true;
-        }
+  const evalCtx = {
+    vars: ctx.vars,
+    args,
+    resolveIdentifier: (name, identifierArgs) => {
+      if (name.startsWith('$')) {
+        return evalIdentifier(name, ctx, args);
       }
-    }
-  }
-  
-  return result;
+      return '';
+    },
+  };
+
+  return evaluateExpression(String(expr ?? ''), evalCtx);
 }
 
 function evalIdentifier(token, ctx, args) {
@@ -126,12 +90,12 @@ function evalIdentifier(token, ctx, args) {
   const rawArgs = splitArgs(call[2]).map((x) => resolveToken(x.trim(), ctx, args));
 
   if (name === 'calc') {
-    const expr = evalExpression(String(rawArgs[0] ?? ''), ctx, args);
-    try {
-      return runCompiled(expr);
-    } catch {
-      return 0;
-    }
+    const expr = String(rawArgs[0] ?? '');
+    const evalCtx = {
+      vars: ctx.vars,
+      args,
+    };
+    return evaluateExpression(expr, evalCtx);
   }
   if (name === 'asctime') {
     const format = String(rawArgs[0] ?? '');
@@ -221,18 +185,27 @@ function evalIdentifier(token, ctx, args) {
 }
 
 function evalCondition(expr, ctx, args) {
+  const evalCtx = {
+    vars: ctx.vars,
+    args,
+    resolveIdentifier: (name, identifierArgs) => {
+      if (name.startsWith('$')) {
+        return evalIdentifier(name, ctx, args);
+      }
+      return '';
+    },
+  };
+
   const tokens = tokenizeCommand(expr);
-  const replaced = tokens.map((t) => {
-    if (t === '||' || t === '&&' || t === '>' || t === '<' || t === '>=' || t === '<=' || t === '==' || t === '=' || t === '!=') return t === '=' ? '==' : t;
-    const v = resolveToken(t, ctx, args);
-    return typeof v === 'string' ? JSON.stringify(v) : String(v);
+  const resolved = tokens.map((t) => {
+    if (t === '||' || t === '&&' || t === '>' || t === '<' || t === '>=' || t === '<=' || t === '==' || t === '=' || t === '!=' || t === '<>') {
+      return t;
+    }
+    return resolveToken(t, ctx, args);
   });
 
-  try {
-    return Boolean(runCompiled(replaced.join(' ')));
-  } catch {
-    return false;
-  }
+  const condition = resolved.join(' ');
+  return safeEvalCondition(condition, evalCtx);
 }
 
 export class NixrcInterpreter {
@@ -324,13 +297,49 @@ export class NixrcInterpreter {
 
   call(alias, args = []) {
     const node = this.aliases.get(String(alias).toLowerCase());
-    if (!node) return;
-    this.runStatements(node.body, {}, args);
+    if (!node) return undefined;
+    try {
+      this.runStatements(node.body, {}, args);
+      return undefined;
+    } catch (e) {
+      if (e.isReturn) return e.value;
+      throw e;
+    }
   }
 
   runStatements(statements, payload = {}, args = []) {
-    for (const stmt of statements) {
-      if (!stmt) continue;
+    const labels = new Map();
+    for (let i = 0; i < statements.length; i++) {
+      if (statements[i]?.type === 'LabelStatement') {
+        labels.set(statements[i].name, i);
+      }
+    }
+
+    let i = 0;
+    while (i < statements.length) {
+      const stmt = statements[i];
+      if (!stmt) { i += 1; continue; }
+
+      if (stmt.type === 'LabelStatement') {
+        i += 1;
+        continue;
+      }
+
+      if (stmt.type === 'GotoStatement') {
+        const target = labels.get(stmt.label);
+        if (target !== undefined) {
+          i = target;
+        } else {
+          i += 1;
+        }
+        continue;
+      }
+
+      if (stmt.type === 'ReturnStatement') {
+        const value = stmt.value ? resolveToken(stmt.value, this.ctx, args) : undefined;
+        throw { isReturn: true, value };
+      }
+
       if (stmt.type === 'CommandStatement') this.runCommand(stmt.name, stmt.args, payload, args);
       if (stmt.type === 'IfStatement') {
         if (evalCondition(stmt.condition, this.ctx, args)) {
@@ -340,13 +349,16 @@ export class NixrcInterpreter {
         }
       }
       if (stmt.type === 'WhileStatement') {
-        let guard = 0;
-        while (guard < 200 && evalCondition(stmt.condition, this.ctx, args)) {
+        const loopGuard = new LoopGuard(this.ctx.config?.loopLimits || {});
+        while (true) {
+          const check = loopGuard.check();
+          if (!check.ok) break;
+          if (!evalCondition(stmt.condition, this.ctx, args)) break;
           this.runStatements(stmt.body, payload, args);
-          guard += 1;
         }
       }
       if (stmt.type === 'SequenceStatement') this.runStatements(stmt.body, payload, args);
+      i += 1;
     }
   }
 
@@ -591,6 +603,8 @@ export class NixrcInterpreter {
       return;
     }
 
-    this.ctx.log('warn', `Unsupported command: ${name} ${args.join(' ')}`);
+    this.ctx.errorHandler?.handle(
+      new CommandError(`Unsupported command: ${name}`, name, args)
+    );
   }
 }

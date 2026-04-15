@@ -4,10 +4,22 @@ import { DialogManager } from './dialog-manager.js';
 import { TimerManager } from './timer-manager.js';
 import { HashStore, IniStore, FileStore, SocketShim, IrcShim } from './subsystems.js';
 import { NixrcInterpreter } from './interpreter.js';
+import { ErrorHandler, createErrorHandler } from './error-handler.js';
 
 export function createRuntime(options = {}) {
   const host = options.host || document.body;
   const logger = options.log || (() => {});
+  const errorHandler = createErrorHandler({
+    mode: options.errorMode || 'log',
+    maxErrors: options.maxErrors || 100,
+    onLimitReached: options.onErrorLimit || null,
+  });
+
+  if (options.onError) {
+    errorHandler.on('RUNTIME_ERROR', options.onError);
+    errorHandler.on('COMMAND_ERROR', options.onError);
+    errorHandler.on('IDENTIFIER_ERROR', options.onError);
+  }
 
   const eventBus = new EventBus();
   const mouse = { x: 0, y: 0, key: 0 };
@@ -40,6 +52,7 @@ export function createRuntime(options = {}) {
     lastRegex: { matches: [], captures: [] },
     event: {},
     log: logger,
+    errorHandler,
   };
 
   const interpreter = new NixrcInterpreter(ctx);
@@ -70,7 +83,11 @@ export function createRuntime(options = {}) {
     emit,
     reset,
     defineDialog: (name, spec) => dialogs.defineDialog(name, spec),
+    errorHandler,
+    getErrors: () => errorHandler.getErrors(),
+    clearErrors: () => errorHandler.clear(),
   };
 }
 
-export { EventBus, WindowManager, DialogManager, TimerManager, NixrcInterpreter };
+export { EventBus, WindowManager, DialogManager, TimerManager, NixrcInterpreter, ErrorHandler };
+export * from './errors.js';

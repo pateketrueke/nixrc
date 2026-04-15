@@ -80,21 +80,75 @@ class PictureWindow {
 
     const image = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
     const data = image.data;
-    const target = getPixel(data, this.canvas.width, sx, sy);
+    const width = this.canvas.width;
+    const height = this.canvas.height;
+    const target = getPixel(data, width, sx, sy);
     const border = parseColorToRgba(borderColor);
     const fill = parseColorToRgba(fillColor);
 
     if (sameColor(target, fill) || sameColor(target, border)) return;
 
-    const stack = [[sx, sy]];
-    while (stack.length > 0) {
-      const [cx, cy] = stack.pop();
-      if (cx < 0 || cy < 0 || cx >= this.canvas.width || cy >= this.canvas.height) continue;
-      const px = getPixel(data, this.canvas.width, cx, cy);
-      if (!sameColor(px, target)) continue;
-      if (sameColor(px, border)) continue;
-      setPixel(data, this.canvas.width, cx, cy, fill);
-      stack.push([cx + 1, cy], [cx - 1, cy], [cx, cy + 1], [cx, cy - 1]);
+    const stack = [];
+    const visited = new Set();
+    const MAX_STACK = 10000;
+
+    const findSpan = (y) => {
+      let left = sx;
+      let right = sx;
+      
+      while (left >= 0 && sameColor(getPixel(data, width, left, y), target) && !sameColor(getPixel(data, width, left, y), border)) {
+        left--;
+      }
+      left++;
+      
+      while (right < width && sameColor(getPixel(data, width, right, y), target) && !sameColor(getPixel(data, width, right, y), border)) {
+        right++;
+      }
+      
+      return { left, right };
+    };
+
+    const initial = findSpan(sy);
+    stack.push({ y: sy, left: initial.left, right: initial.right });
+
+    while (stack.length > 0 && stack.length < MAX_STACK) {
+      const { y, left, right } = stack.pop();
+      const key = `${y}:${left}:${right}`;
+      
+      if (visited.has(key)) continue;
+      if (y < 0 || y >= height) continue;
+      visited.add(key);
+
+      for (let x = left; x < right; x++) {
+        const px = getPixel(data, width, x, y);
+        if (sameColor(px, target) && !sameColor(px, border)) {
+          setPixel(data, width, x, y, fill);
+        }
+      }
+
+      for (const dy of [-1, 1]) {
+        const ny = y + dy;
+        if (ny < 0 || ny >= height) continue;
+        
+        let spanLeft = -1;
+        let spanRight = -1;
+        
+        for (let x = left; x < right; x++) {
+          const px = getPixel(data, width, x, ny);
+          if (sameColor(px, target) && !sameColor(px, border)) {
+            if (spanLeft === -1) spanLeft = x;
+            spanRight = x + 1;
+          } else if (spanLeft !== -1) {
+            stack.push({ y: ny, left: spanLeft, right: spanRight });
+            spanLeft = -1;
+            spanRight = -1;
+          }
+        }
+        
+        if (spanLeft !== -1) {
+          stack.push({ y: ny, left: spanLeft, right: spanRight });
+        }
+      }
     }
 
     this.ctx.putImageData(image, 0, 0);
