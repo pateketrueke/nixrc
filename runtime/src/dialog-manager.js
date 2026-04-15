@@ -136,7 +136,104 @@ function renderControl(control) {
   if (type === 'list' || type === 'combo') {
     const el = document.createElement('select');
     el.dataset.id = String(id);
+    el.size = control.size || (type === 'list' ? 4 : 1);
+    el.multiple = control.multi || false;
+    if (control.items) {
+      for (const item of control.items) {
+        const opt = document.createElement('option');
+        opt.value = item.value || item;
+        opt.textContent = item.text || item;
+        el.appendChild(opt);
+      }
+    }
     return el;
+  }
+
+  if (type === 'radio') {
+    const wrap = document.createElement('label');
+    wrap.dataset.id = String(id);
+    const radio = document.createElement('input');
+    radio.type = 'radio';
+    radio.name = control.group || `radio-${id}`;
+    radio.value = control.value || String(id);
+    if (control.checked) radio.checked = true;
+    const txt = document.createElement('span');
+    txt.textContent = control.text || '';
+    wrap.append(radio, txt);
+    return wrap;
+  }
+
+  if (type === 'box') {
+    const fieldset = document.createElement('fieldset');
+    fieldset.dataset.id = String(id);
+    const legend = document.createElement('legend');
+    legend.textContent = control.text || '';
+    fieldset.appendChild(legend);
+    return fieldset;
+  }
+
+  if (type === 'tab') {
+    const container = document.createElement('div');
+    container.dataset.id = String(id);
+    container.className = 'nixrc-tab-container';
+    const tabList = document.createElement('div');
+    tabList.className = 'nixrc-tab-list';
+    const tabPanels = document.createElement('div');
+    tabPanels.className = 'nixrc-tab-panels';
+    const tabs = control.tabs || [];
+    tabs.forEach((tab, index) => {
+      const tabBtn = document.createElement('button');
+      tabBtn.className = 'nixrc-tab-button';
+      tabBtn.textContent = tab.title || `Tab ${index + 1}`;
+      tabBtn.onclick = () => {
+        container.querySelectorAll('.nixrc-tab-button').forEach((b, i) => {
+          b.classList.toggle('active', i === index);
+        });
+        container.querySelectorAll('.nixrc-tab-panel').forEach((p, i) => {
+          p.hidden = i !== index;
+        });
+      };
+      if (index === 0) tabBtn.classList.add('active');
+      tabList.appendChild(tabBtn);
+      const panel = document.createElement('div');
+      panel.className = 'nixrc-tab-panel';
+      panel.hidden = index !== 0;
+      tabPanels.appendChild(panel);
+    });
+    container.append(tabList, tabPanels);
+    return container;
+  }
+
+  if (type === 'icon') {
+    const container = document.createElement('div');
+    container.dataset.id = String(id);
+    const img = document.createElement('img');
+    img.src = control.src || '';
+    img.alt = control.text || '';
+    img.style.width = `${control.w || 32}px`;
+    img.style.height = `${control.h || 32}px`;
+    container.appendChild(img);
+    return container;
+  }
+
+  if (type === 'link') {
+    const link = document.createElement('a');
+    link.dataset.id = String(id);
+    link.href = control.href || '#';
+    link.textContent = control.text || '';
+    link.target = control.target || '_blank';
+    return link;
+  }
+
+  if (type === 'progress') {
+    const container = document.createElement('div');
+    container.dataset.id = String(id);
+    container.className = 'nixrc-progress';
+    const bar = document.createElement('div');
+    bar.className = 'nixrc-progress-bar';
+    bar.style.width = `${control.value || 0}%`;
+    container.appendChild(bar);
+    return container;
   }
 
   const fallback = document.createElement('div');

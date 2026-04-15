@@ -3,3 +3,72 @@ nixrc-dialog {
   --nixrc-border: #9a9a9a;
   --nixrc-font: "Segoe UI", system-ui, sans-serif;
 }
+
+.nixrc-dialog label[data-id] input[type="radio"] {
+  margin-right: 0.5em;
+}
+
+.nixrc-dialog fieldset {
+  border: 1px solid var(--nixrc-border);
+  border-radius: 4px;
+  padding: 0.5em;
+}
+
+.nixrc-dialog fieldset legend {
+  padding: 0 0.5em;
+  font-size: 0.9em;
+}
+
+.nixrc-tab-container {
+  display: flex;
+  flex-direction: column;
+}
+
+.nixrc-tab-list {
+  display: flex;
+  border-bottom: 1px solid var(--nixrc-border);
+  gap: 2px;
+}
+
+.nixrc-tab-button {
+  padding: 0.5em 1em;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+}
+
+.nixrc-tab-button:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.nixrc-tab-button.active {
+  border-bottom-color: #007bff;
+  font-weight: 500;
+}
+
+.nixrc-tab-panel {
+  padding: 1em;
+}
+
+.nixrc-progress {
+  border: 1px solid var(--nixrc-border);
+  border-radius: 4px;
+  overflow: hidden;
+  background: #e0e0e0;
+}
+
+.nixrc-progress-bar {
+  height: 100%;
+  background: #007bff;
+  transition: width 0.3s ease;
+}
+
+.nixrc-dialog a[data-id] {
+  color: #007bff;
+  text-decoration: none;
+}
+
+.nixrc-dialog a[data-id]:hover {
+  text-decoration: underline;
+}
