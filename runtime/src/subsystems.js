@@ -48,40 +48,52 @@ export class IniStore {
   }
 }
 
+import { createFileBackend } from './file-backend.js';
+
 export class FileStore {
-  constructor() {
-    this.files = new Map();
+  constructor(backend = null) {
+    this.backend = backend || createFileBackend();
     this.handles = new Map();
   }
 
-  fopen(name, file) {
-    if (!this.files.has(file)) this.files.set(file, '');
-    this.handles.set(name, { file, pos: 0 });
+  async fopen(name, file) {
+    const id = await this.backend.open(file, 'r+');
+    this.handles.set(name, { id, file });
   }
 
-  fclose(name) {
+  async fclose(name) {
+    const h = this.handles.get(name);
+    if (!h) return;
+    await this.backend.close(h.id);
     this.handles.delete(name);
   }
 
-  fwrite(name, line) {
+  async fwrite(name, line) {
     const h = this.handles.get(name);
     if (!h) return;
-    const current = this.files.get(h.file) || '';
-    this.files.set(h.file, `${current}${line}\n`);
+    await this.backend.write(h.id, line);
   }
 
-  fread(name) {
+  async fread(name) {
     const h = this.handles.get(name);
     if (!h) return '';
-    const content = this.files.get(h.file) || '';
-    const lines = content.split('\n');
-    const line = lines[h.pos] || '';
-    h.pos += 1;
-    return line;
+    return this.backend.read(h.id);
   }
 
-  isfile(file) {
-    return this.files.has(file);
+  async isfile(file) {
+    return this.backend.exists(file);
+  }
+
+  async readAll(file) {
+    return this.backend.readAll(file);
+  }
+
+  async writeAll(file, data) {
+    return this.backend.writeAll(file, data);
+  }
+
+  async delete(file) {
+    return this.backend.delete(file);
   }
 }
 
