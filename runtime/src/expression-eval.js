@@ -13,6 +13,32 @@ function toBoolean(v) {
   return Boolean(v);
 }
 
+const MEMOIZED_IDENTIFIERS = new Set([
+  '$time', '$date', '$ctime', '$day', '$month', '$year',
+]);
+
+const MEMO_TTL = {
+  '$time': 1000,
+  '$date': 60000,
+  '$ctime': 1000,
+};
+
+const identifierCache = new Map();
+
+function getCachedIdentifier(name, args, compute) {
+  const key = `${name}:${args.join(',')}`;
+  const cached = identifierCache.get(key);
+  const ttl = MEMO_TTL[name] || 0;
+  
+  if (cached && Date.now() - cached.time < ttl) {
+    return cached.value;
+  }
+  
+  const value = compute();
+  identifierCache.set(key, { value, time: Date.now() });
+  return value;
+}
+
 function applyBinaryOp(op, left, right) {
   const l = toNumber(left);
   const r = toNumber(right);
@@ -68,6 +94,11 @@ export function evaluateAST(ast, ctx) {
 
     case 'Identifier': {
       const name = ast.name;
+      
+      if (MEMOIZED_IDENTIFIERS.has(name) && ctx.resolveIdentifier) {
+        return getCachedIdentifier(name, [], () => ctx.resolveIdentifier(name, []));
+      }
+      
       if (ctx.identifiers && typeof ctx.identifiers[name] === 'function') {
         return ctx.identifiers[name]([]);
       }
@@ -139,11 +170,13 @@ export function evaluateCondition(source, ctx) {
 
 export function clearExpressionCache() {
   astCache.clear();
+  identifierCache.clear();
 }
 
 export function getExpressionCacheStats() {
   return {
     size: astCache.size,
     maxSize: MAX_CACHE_SIZE,
+    identifierCacheSize: identifierCache.size,
   };
 }
