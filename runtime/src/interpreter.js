@@ -296,13 +296,49 @@ export class NixrcInterpreter {
 
   call(alias, args = []) {
     const node = this.aliases.get(String(alias).toLowerCase());
-    if (!node) return;
-    this.runStatements(node.body, {}, args);
+    if (!node) return undefined;
+    try {
+      this.runStatements(node.body, {}, args);
+      return undefined;
+    } catch (e) {
+      if (e.isReturn) return e.value;
+      throw e;
+    }
   }
 
   runStatements(statements, payload = {}, args = []) {
-    for (const stmt of statements) {
-      if (!stmt) continue;
+    const labels = new Map();
+    for (let i = 0; i < statements.length; i++) {
+      if (statements[i]?.type === 'LabelStatement') {
+        labels.set(statements[i].name, i);
+      }
+    }
+
+    let i = 0;
+    while (i < statements.length) {
+      const stmt = statements[i];
+      if (!stmt) { i += 1; continue; }
+
+      if (stmt.type === 'LabelStatement') {
+        i += 1;
+        continue;
+      }
+
+      if (stmt.type === 'GotoStatement') {
+        const target = labels.get(stmt.label);
+        if (target !== undefined) {
+          i = target;
+        } else {
+          i += 1;
+        }
+        continue;
+      }
+
+      if (stmt.type === 'ReturnStatement') {
+        const value = stmt.value ? resolveToken(stmt.value, this.ctx, args) : undefined;
+        throw { isReturn: true, value };
+      }
+
       if (stmt.type === 'CommandStatement') this.runCommand(stmt.name, stmt.args, payload, args);
       if (stmt.type === 'IfStatement') {
         if (evalCondition(stmt.condition, this.ctx, args)) {
@@ -319,6 +355,7 @@ export class NixrcInterpreter {
         }
       }
       if (stmt.type === 'SequenceStatement') this.runStatements(stmt.body, payload, args);
+      i += 1;
     }
   }
 
